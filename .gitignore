@@ -1,0 +1,28 @@
+# Python environments, bytecode, and tooling caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Packaging output
+build/
+dist/
+*.egg-info/
+
+# Local configuration and credentials (templates are safe to track)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local runtime output and macOS metadata
+*.log
+.DS_Store

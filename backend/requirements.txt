@@ -1,0 +1,30 @@
+# Python 3.13 runtime snapshot, including transitive dependencies.
+# Direct dependencies: fastapi, uvicorn, pydantic, pydantic-settings, qiskit, qiskit-aer.
+annotated-doc==0.0.5
+annotated-types==0.8.0
+# Starlette 1.6 still uses an alias deprecated by newer AnyIO releases.
+anyio==4.12.1
+click==8.5.0
+fastapi==0.141.1
+h11==0.16.0
+idna==3.19
+pydantic==2.13.5
+pydantic-settings==2.15.0
+pydantic_core==2.46.5
+python-dotenv==1.2.3
+starlette==1.6.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+uvicorn==0.52.4
+
+# Local quantum engine and its additional transitive dependencies.
+dill==0.4.1
+numpy==2.5.3
+psutil==7.2.2
+python-dateutil==2.9.0.post0
+qiskit==2.5.2
+qiskit-aer==0.17.2
+rustworkx==0.18.1
+scipy==1.18.1
+six==1.17.0
+stevedore==5.9.1
