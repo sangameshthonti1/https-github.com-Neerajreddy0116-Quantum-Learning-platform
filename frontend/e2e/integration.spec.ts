@@ -71,7 +71,7 @@ test.afterAll(stopBackend);
 test('all five templates execute through the browser against real Aer; Bell bars match the response', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/circuit-test');
   await expect(page.getByRole('heading', { name: 'Circuit Test', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Simulation results', exact: true })).toHaveCount(0);
   const skipLink = page.getByRole('link', { name: 'Skip to circuit test' });
@@ -120,7 +120,7 @@ test('all five templates execute through the browser against real Aer; Bell bars
 });
 
 test('loading prevents duplicate runs while a real request is in flight', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/circuit-test');
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => { release = resolve; });
   let requestCount = 0;
@@ -142,7 +142,7 @@ test('loading prevents duplicate runs while a real request is in flight', async 
 });
 
 test('real API validation error is readable and removes previous results', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/circuit-test');
   await run(page);
   await page.route('**/api/simulate', async (route) => {
     const request = route.request().postDataJSON() as SimulationRequest;
@@ -162,7 +162,7 @@ test('real API validation error is readable and removes previous results', async
 });
 
 test('stopping the owned backend produces an actual proxy failure, never stale or mock results', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('/circuit-test');
   await page.getByLabel('Circuit template', { exact: true }).selectOption('bell');
   await run(page);
   await stopBackend();

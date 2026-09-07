@@ -9,14 +9,14 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:5174',
     browserName: 'chromium',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'npm run dev',
-    url: 'http://127.0.0.1:5173',
+    command: 'npm run dev -- --port 5174',
+    url: 'http://127.0.0.1:5174',
     reuseExistingServer: false,
     timeout: 30_000,
     env: { API_PROXY_TARGET: 'http://127.0.0.1:8000' },

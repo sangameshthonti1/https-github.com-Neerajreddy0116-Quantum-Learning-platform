@@ -1,8 +1,11 @@
-# Circuit Test — first frontend integration
+# Circuit Lab
 
-A single React + TypeScript + Vite page connected to the **real local FastAPI
-simulation API**. This is a functional integration milestone, not the full
-website. No AI, authentication, database, external fonts, or chart library.
+An interactive React + TypeScript + Vite scientific workspace connected to the
+**real local FastAPI + Qiskit Aer simulation API**. The lab is at `/`; the original
+Circuit Test page remains independently accessible at `/circuit-test` with all
+of its original integration assertions preserved. No new dependencies were
+added for the editor. No AI, authentication, database, external fonts, unsupported
+gates, or client-side simulated results are included.
 
 ## Requirements and install
 
@@ -66,7 +69,66 @@ The Vite proxy is **development-only**. `npm run build` produces static files,
 not a backend or deployed reverse proxy. A future hosting setup must explicitly
 route same-origin `/api` requests to FastAPI; deployment is outside this milestone.
 
-## Circuit Test page
+## Using the Circuit Lab
+
+Open **http://127.0.0.1:5173/**. The toolbar contains templates, Undo, Redo,
+Reset, and Run. The left panel contains the gate palette, settings, and gate
+inspector. The central grid is the circuit; the right panel contains real results.
+At widths of 1000px or less, use **Gates & settings / Circuit / Results** to switch
+panels. All controls work with clicks/taps and standard keyboard activation;
+drag-and-drop is not required or implemented.
+
+### Build and edit
+
+- Choose **H**, **X**, **Z**, or **CX** in the gate palette, then click an empty
+  wire cell. A cell in an existing column inserts before that operation; the
+  final column appends. One operation per column maps exactly to API gate order.
+- For **CX**, click the **control** first, then a **different target qubit in the
+  same column**. A preview marks the pending control. A solid connector joins
+  the committed control dot and target symbol. Cancel CX or Escape in the grid
+  abandons the incomplete placement; no partial gate enters the request.
+- Alternatively, use the **Click-based editor** form: choose type, target,
+  control (CX only), and insertion position, then **Add gate**.
+- Click an existing gate to inspect it. **Apply gate changes** updates its type
+  or qubits; **Earlier / Later** changes execution order; **Delete gate** removes
+  it. **Done** returns to the insertion form. Form drafts are not part of the
+  circuit until applied.
+- Add/remove qubits within **1–3**. Removing the highest-index qubit is disabled
+  while any gate touches it: move or delete those gates first. Gates are never
+  silently dropped. CX requires at least two qubits.
+- Enter **1–8192 integer shots**, then **Apply shots**. Run is disabled while the
+  shot value is unapplied or a CX placement is incomplete. Gate limit: **256**.
+- Templates replace the circuit with the existing Empty, X, H, H followed by H,
+  or Bell State requests. Replacement is undoable.
+- **Undo/Redo** restore complete canonical request snapshots, including settings,
+  gate order, deletion, and template loading. A new edit clears redo history.
+  **Reset** restores a blank **2-qubit, 1024-shot, seed-42** circuit and is itself
+  undoable. History retains the last 100 edits in memory; refreshing loses it.
+
+### Run and interpret
+
+**Run Simulation** sends the current `SimulationRequest` unchanged to the existing
+API client. A result retains a separate snapshot of the exact request that
+produced it. Editing the circuit marks it **Stale** with a rerun instruction;
+undoing back to that request makes it Current again. Edits remain possible during
+an in-flight run: its eventual response is still compared against its original
+request, never relabeled as a result of newer edits. API failures are displayed
+and clear previous results instead of showing fake data.
+
+Use the **Ideal probabilities**, **Sampled counts**, and **Statevector** result
+tabs. Ideal probabilities are state-derived, not shot frequencies. Values are
+formatted for reading; their full returned precision is available in **Details**.
+Details also contains metadata, the current editor JSON, the successful request
+snapshot, and its raw response. The backend and CORS contract are unchanged.
+
+For a Bell circuit without using a template: keep the initial two qubits, select
+H and click q0 at step 1; select CX and click q0 then q1 at step 2; Run. Expect
+approximately 50% ideal probability on `00` and `11`, zero on `01` and `10`.
+Sampled counts fluctuate and sum to the selected shot count.
+
+## Preserved Circuit Test page
+
+Open **http://127.0.0.1:5173/circuit-test** for the original integration page.
 
 Select **Empty**, **X**, **H**, **H followed by H**, or **Bell State**, inspect
 the ordered gates and exact JSON, then click **Run Simulation**.
@@ -124,7 +186,9 @@ npm run browser:install
 This downloads Chromium and its support binaries from Playwright's CDN. It is
 needed only for browser tests, not for running/building the frontend.
 
-Stop your manually started servers first so **ports 8000 and 5173 are free**, then:
+The browser tests use **port 5174** for their own Vite instance so an existing
+frontend on 5173 can stay running. Ensure **ports 8000 and 5174 are free** first
+(stop only servers you own), then:
 
 ```sh
 npm run test:e2e
@@ -135,7 +199,13 @@ Chromium, and stops its owned processes afterward. It refuses to reuse an
 existing server. Test server configuration is isolated with an empty CORS
 allowlist and the default proxy target; it does not edit backend settings/files.
 
-The suite verifies:
+The lab suite additionally verifies visual Bell construction and the exact real
+POST, control/target editing and connectors, insertion/reordering/deletion,
+Undo/Redo/Reset, limits, templates, stale results after canonical edits, edits
+during an in-flight run, unchanged-gate no-op edits, keyboard interaction,
+responsive panel navigation, and real backend outages.
+
+The original Circuit Test suite still verifies:
 
 1. All five templates execute against actual Aer and render the response. Bell
    probabilities are approximately 50% for `00` and `11`; counts sum to 1024.
@@ -153,7 +223,7 @@ only in test assertions, never as application output.
 
 ### Manual verification
 
-1. Start both servers, open the browser URL, choose **Bell State**, and run it.
+1. Start both servers, open `/circuit-test`, choose **Bell State**, and run it.
 2. Confirm the `00`/`11` bars show about **50%** each, `01`/`10` show **0%**,
    counts total **1024**, and the returned metadata identifies Qiskit/Aer.
 3. Stop only your backend terminal with Ctrl+C, leaving Vite running.
@@ -168,10 +238,19 @@ frontend/
 │   ├── api/types.ts         # Backend-independent JSON contract
 │   ├── api/client.ts        # Fetch, response checks, timeout and error messages
 │   ├── templates.ts         # Circuit input templates only
-│   ├── App.tsx              # Circuit Test page and real-response display
-│   ├── styles.css           # Responsive styles and native probability meters
+│   ├── App.tsx              # Lazy page selection: lab /, integration /circuit-test
+│   ├── CircuitTest.tsx      # Preserved original integration page
+│   ├── lab/
+│   │   ├── CircuitLab.tsx   # Composition, selection, pending CX, run snapshots
+│   │   ├── useCircuitEditor.ts # Validated canonical request and undo/redo reducer
+│   │   ├── GatePanel.tsx    # Gate palette, settings, insertion and inspector
+│   │   ├── CircuitCanvas.tsx # Wire grid, ordered gates and CX connectors
+│   │   ├── ResultsPanel.tsx # Real results, stale/error states and Details
+│   │   └── lab.css         # Scoped responsive scientific workspace styles
+│   ├── styles.css           # Preserved integration page styles
 │   └── main.tsx             # React entry point
-├── e2e/integration.spec.ts  # Real-engine browser checks and owned backend lifecycle
+├── e2e/integration.spec.ts  # Preserved integration coverage at /circuit-test
+├── e2e/circuit-lab.spec.ts  # Real-engine visual editor and snapshot regressions
 ├── playwright.config.ts
 ├── vite.config.ts          # Loopback dev server and same-origin API proxy
 ├── tsconfig.json
