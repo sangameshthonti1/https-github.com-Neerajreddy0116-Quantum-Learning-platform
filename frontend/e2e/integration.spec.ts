@@ -27,11 +27,11 @@ async function startBackend() {
   const probe = createServer();
   await new Promise<void>((resolve, reject) => {
     probe.once('error', reject);
-    probe.listen(8000, '127.0.0.1', () => probe.close(() => resolve()));
+    probe.listen(8001, '127.0.0.1', () => probe.close(() => resolve()));
   });
   backend = spawn(
     fileURLToPath(new URL('../../backend/.venv/bin/python', import.meta.url)),
-    ['-m', 'uvicorn', 'app.main:create_app', '--factory', '--host', '127.0.0.1', '--port', '8000'],
+    ['-m', 'uvicorn', 'app.main:create_app', '--factory', '--host', '127.0.0.1', '--port', '8001'],
     {
       cwd: fileURLToPath(new URL('../../backend/', import.meta.url)),
       env: { ...process.env, QLP_CORS_ORIGINS: '[]', PYTHONDONTWRITEBYTECODE: '1' },
@@ -44,7 +44,7 @@ async function startBackend() {
   await expect.poll(async () => {
     if (backend?.exitCode !== null) throw new Error(`Backend exited during startup: ${backendLog}`);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/health', { signal: AbortSignal.timeout(1000) });
+      const response = await fetch('http://127.0.0.1:8001/api/health', { signal: AbortSignal.timeout(1000) });
       return response.status;
     } catch {
       return 0;

@@ -72,11 +72,14 @@ route same-origin `/api` requests to FastAPI; deployment is outside this milesto
 ## Using the Circuit Lab
 
 Open **http://127.0.0.1:5173/**. The toolbar contains templates, Undo, Redo,
-Reset, and Run. The left panel contains the gate palette, settings, and gate
-inspector. The central grid is the circuit; the right panel contains real results.
+Reset, Run, and current/stale/error status. The left panel contains the gate
+palette and settings. The central grid is the circuit; selecting a gate opens
+its contextual inspector directly below the grid. The right panel contains real results.
 At widths of 1000px or less, use **Gates & settings / Circuit / Results** to switch
-panels. All controls work with clicks/taps and standard keyboard activation;
-drag-and-drop is not required or implemented.
+panels. The Circuit view also keeps a compact palette and essential settings
+above the grid. Selecting a gate keeps you in Circuit view. All controls work
+with clicks/taps and standard keyboard activation. Desktop drag-and-drop uses
+native browser support with no added dependencies.
 
 ### Build and edit
 
@@ -87,12 +90,18 @@ drag-and-drop is not required or implemented.
   same column**. A preview marks the pending control. A solid connector joins
   the committed control dot and target symbol. Cancel CX or Escape in the grid
   abandons the incomplete placement; no partial gate enters the request.
-- Alternatively, use the **Click-based editor** form: choose type, target,
+- On desktop, drag **H**, **X**, or **Z** from the palette onto an empty wire
+  cell. Dragging **CX** places its pending control; click a different wire at
+  that step to finish, or cancel. Occupied cells never accept drops. Dragging
+  existing gates is not supported; use Earlier / Later in the inspector.
+- Alternatively, expand **Add gate with form** below the canvas: choose type, target,
   control (CX only), and insertion position, then **Add gate**.
 - Click an existing gate to inspect it. **Apply gate changes** updates its type
   or qubits; **Earlier / Later** changes execution order; **Delete gate** removes
-  it. **Done** returns to the insertion form. Form drafts are not part of the
-  circuit until applied.
+  it. **Done · place gates**, **Deselect**, a palette tool, or **Escape** returns
+  to placement. Selected gates are solid slate; the active placement tool is
+  outlined blue. Delete stays visible in the inspector, including on narrow
+  screens. Form drafts are not part of the circuit until applied.
 - Add/remove qubits within **1–3**. Removing the highest-index qubit is disabled
   while any gate touches it: move or delete those gates first. Gates are never
   silently dropped. CX requires at least two qubits.
@@ -118,7 +127,7 @@ and clear previous results instead of showing fake data.
 Use the **Ideal probabilities**, **Sampled counts**, and **Statevector** result
 tabs. Ideal probabilities are state-derived, not shot frequencies. Values are
 formatted for reading; their full returned precision is available in **Details**.
-Details also contains metadata, the current editor JSON, the successful request
+Details also contains bit-order guidance, metadata, the current editor JSON, the successful request
 snapshot, and its raw response. The backend and CORS contract are unchanged.
 
 For a Bell circuit without using a template: keep the initial two qubits, select
@@ -187,8 +196,8 @@ This downloads Chromium and its support binaries from Playwright's CDN. It is
 needed only for browser tests, not for running/building the frontend.
 
 The browser tests use **port 5174** for their own Vite instance so an existing
-frontend on 5173 can stay running. Ensure **ports 8000 and 5174 are free** first
-(stop only servers you own), then:
+frontend on 5173 can stay running. The test backend uses **8001**, leaving the
+development backend on 8000 untouched. Ensure **ports 8001 and 5174 are free**, then:
 
 ```sh
 npm run test:e2e
@@ -197,13 +206,15 @@ npm run test:e2e
 The bounded suite starts its own Uvicorn and Vite processes, launches headless
 Chromium, and stops its owned processes afterward. It refuses to reuse an
 existing server. Test server configuration is isolated with an empty CORS
-allowlist and the default proxy target; it does not edit backend settings/files.
+allowlist and a test proxy target on port 8001; it does not edit backend settings/files.
 
 The lab suite additionally verifies visual Bell construction and the exact real
 POST, control/target editing and connectors, insertion/reordering/deletion,
 Undo/Redo/Reset, limits, templates, stale results after canonical edits, edits
 during an in-flight run, unchanged-gate no-op edits, keyboard interaction,
-responsive panel navigation, and real backend outages.
+responsive panel navigation, contextual deletion/editing at 320px, Escape and
+Done deselection, native H/X/Z/CX palette dragging, occupied-cell drop rejection,
+and real backend outages.
 
 The original Circuit Test suite still verifies:
 
@@ -243,7 +254,8 @@ frontend/
 │   ├── lab/
 │   │   ├── CircuitLab.tsx   # Composition, selection, pending CX, run snapshots
 │   │   ├── useCircuitEditor.ts # Validated canonical request and undo/redo reducer
-│   │   ├── GatePanel.tsx    # Gate palette, settings, insertion and inspector
+│   │   ├── GatePanel.tsx    # Compact palette, settings and reusable gate form
+│   │   ├── GateInspector.tsx # Contextual editing, ordering, deletion and Done
 │   │   ├── CircuitCanvas.tsx # Wire grid, ordered gates and CX connectors
 │   │   ├── ResultsPanel.tsx # Real results, stale/error states and Details
 │   │   └── lab.css         # Scoped responsive scientific workspace styles

@@ -27,12 +27,12 @@ async function startBackend() {
   const probe = createServer();
   await new Promise<void>((resolve, reject) => {
     probe.once('error', reject);
-    probe.listen(8000, '127.0.0.1', () => probe.close(() => resolve()));
+    probe.listen(8001, '127.0.0.1', () => probe.close(() => resolve()));
   });
   backendLog = '';
   backend = spawn(
     fileURLToPath(new URL('../../backend/.venv/bin/python', import.meta.url)),
-    ['-m', 'uvicorn', 'app.main:create_app', '--factory', '--host', '127.0.0.1', '--port', '8000'],
+    ['-m', 'uvicorn', 'app.main:create_app', '--factory', '--host', '127.0.0.1', '--port', '8001'],
     {
       cwd: fileURLToPath(new URL('../../backend/', import.meta.url)),
       env: { ...process.env, QLP_CORS_ORIGINS: '[]', PYTHONDONTWRITEBYTECODE: '1' },
@@ -45,7 +45,7 @@ async function startBackend() {
   await expect.poll(async () => {
     if (backend?.exitCode !== null) throw new Error(`Backend exited during startup: ${backendLog}`);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/health', { signal: AbortSignal.timeout(1000) });
+      const response = await fetch('http://127.0.0.1:8001/api/health', { signal: AbortSignal.timeout(1000) });
       return response.status;
     } catch {
       return 0;
@@ -93,7 +93,7 @@ async function expectRequest(page: Page, expected: SimulationRequest) {
   await expect.poll(() => currentRequest(page)).toEqual(expected);
 }
 
-async function expectStatus(page: Page, status: 'Idle' | 'Current' | 'Stale') {
+async function expectStatus(page: Page, status: 'Idle' | 'Current' | 'Stale' | 'Error') {
   await expect(page.getByRole('status').filter({ hasText: new RegExp(`^${status}$`) })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Results are stale' })).toHaveCount(status === 'Stale' ? 1 : 0);
 }
@@ -132,7 +132,7 @@ async function expectNoPageOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
-// playwright.config.ts uses workers: 1; both files independently start and tear down port 8000.
+// Both specs own port 8001, leaving the developer's backend on 8000 untouched.
 test.describe.configure({ mode: 'serial' });
 test.beforeAll(startBackend);
 test.afterAll(stopBackend);
@@ -249,7 +249,8 @@ test('selected gate drafts, click-based insertion, reorder, delete and reset pre
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
   await expectRequest(page, edited);
 
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Done · place gates', exact: true }).click();
+  await page.getByText('Add gate with form', { exact: true }).click();
   await page.getByLabel('Gate type', { exact: true }).selectOption('z');
   await page.getByLabel('Target qubit', { exact: true }).selectOption('1');
   await page.getByLabel('Insert position', { exact: true }).selectOption('0');
@@ -546,7 +547,7 @@ for (const width of [1000, 390]) {
     await expect(settings).toHaveAttribute('aria-pressed', 'false');
     await expect(results).toHaveAttribute('aria-pressed', 'false');
     await expect(grid).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Gate library', exact: true })).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Gate library', exact: true })).toBeVisible();
     await settings.click();
     await page.getByRole('button', { name: 'Choose H gate', exact: true }).click();
     await expect(settings).toHaveAttribute('aria-pressed', 'true');
@@ -562,8 +563,8 @@ for (const width of [1000, 390]) {
     await expect(page.getByRole('button', { name: 'Run Simulation', exact: true })).toBeDisabled();
     await page.getByRole('button', { name: 'Place gate on q1 at step 2', exact: true }).click();
     await page.getByRole('button', { name: 'Select CX target q1 at step 2', exact: true }).click();
-    await expect(settings).toHaveAttribute('aria-pressed', 'true');
-    await expect(grid).toBeHidden();
+    await expect(circuit).toHaveAttribute('aria-pressed', 'true');
+    await expect(grid).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Selected gate', exact: true })).toBeVisible();
     await expect(page.getByLabel('Control qubit', { exact: true })).toHaveValue('0');
     await expect(page.getByLabel('Target qubit', { exact: true })).toHaveValue('1');
@@ -585,6 +586,82 @@ for (const width of [1000, 390]) {
   });
 }
 
+test('contextual inspector edits and deletes on a narrow screen, with explicit and keyboard deselection', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.getByLabel('Load template', { exact: true }).selectOption('bell');
+  const inspector = page.getByRole('region', { name: 'Selected gate inspector', exact: true });
+  const grid = page.getByRole('region', { name: 'Circuit grid, execution left to right', exact: true });
+  const target = page.getByRole('button', { name: 'Select CX target q1 at step 2', exact: true });
+  await target.click();
+  await expect(grid).toBeVisible();
+  await expect(inspector).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose H gate', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(target).toHaveAttribute('aria-pressed', 'true');
+  await inspector.getByLabel('Control qubit', { exact: true }).selectOption('1');
+  await expect(inspector.getByRole('button', { name: 'Apply gate changes', exact: true })).toBeDisabled();
+  await inspector.getByLabel('Target qubit', { exact: true }).selectOption('0');
+  await inspector.getByRole('button', { name: 'Apply gate changes', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Select CX control q1 at step 2', exact: true })).toBeVisible();
+  await inspector.getByRole('button', { name: 'Move gate earlier', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Select CX target q0 at step 1', exact: true })).toBeVisible();
+  await inspector.getByRole('button', { name: 'Delete gate', exact: true }).click();
+  await expect(inspector).toHaveCount(0);
+  await expect(grid).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Select H gate at step 1', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await page.getByRole('button', { name: 'Select CX target q0 at step 1', exact: true }).click();
+  await inspector.getByLabel('Gate type', { exact: true }).focus();
+  await page.keyboard.press('Escape');
+  await expect(inspector).toHaveCount(0);
+  await expect(grid).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Choose H gate', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Select H gate at step 2', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Done · place gates', exact: true }).click();
+  await expect(inspector).toHaveCount(0);
+  await expect(page.getByLabel('Gate type', { exact: true })).toBeHidden();
+  await page.getByText('Add gate with form', { exact: true }).click();
+  await expect(page.getByLabel('Insert position', { exact: true })).toBeVisible();
+  await expectNoPageOverflow(page);
+  await testInfo.attach('narrow-form.png', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
+});
+
+test('native palette dragging inserts H X Z, rejects occupied cells, and builds a real Bell circuit with CX', async ({ page }) => {
+  const palette = (type: string) => page.getByRole('button', { name: `Choose ${type} gate`, exact: true });
+  const cell = (q: number, step: number) => page.getByRole('button', { name: `Place gate on q${q} at step ${step}`, exact: true });
+  await palette('H').dragTo(cell(0, 1));
+  const first = await currentRequest(page);
+  expect(withoutGateIds(first)).toEqual({ ...blank, gates: [bellGates[0]] });
+  await palette('X').dragTo(page.getByRole('button', { name: 'Select H gate at step 1', exact: true }));
+  await expectRequest(page, first);
+  await palette('X').dragTo(cell(1, 1));
+  await palette('Z').dragTo(cell(0, 3));
+  const three = await currentRequest(page);
+  expect(withoutGateIds(three)).toEqual({ ...blank, gates: [
+    { type: 'x', targets: [1], controls: [] }, bellGates[0], { type: 'z', targets: [0], controls: [] },
+  ] });
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expectRequest(page, first);
+  await page.getByRole('button', { name: 'Redo', exact: true }).click();
+  await page.getByRole('button', { name: 'Redo', exact: true }).click();
+  await expectRequest(page, three);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await palette('CX').dragTo(cell(0, 2));
+  await expectRequest(page, first); // A drop supplies only the control, never a partial CX.
+  await expect(page.getByRole('button', { name: 'Run Simulation', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Cancel CX', exact: true }).click();
+  await expectRequest(page, first);
+  await palette('CX').dragTo(cell(0, 2));
+  await cell(1, 2).click();
+  const { request, body } = await run(page);
+  expect(withoutGateIds(request)).toEqual({ ...blank, gates: bellGates });
+  expect(body.probabilities['00']).toBeCloseTo(0.5, 12);
+  expect(body.probabilities['11']).toBeCloseTo(0.5, 12);
+  await expect(page.getByTestId('lab-probability-00')).toContainText('50.0000%');
+  await expect(page.getByTestId('lab-probability-11')).toContainText('50.0000%');
+});
+
 // Must remain last: the failure is produced by stopping only this file's owned backend.
 test('an actual backend outage reports an alert and removes the previous probability results', async ({ page }, testInfo) => {
   await visualBell(page);
@@ -600,7 +677,7 @@ test('an actual backend outage reports an alert and removes the previous probabi
   await expect(page.getByRole('alert')).toContainText('Simulation could not complete');
   await expect(page.getByRole('alert')).toContainText('API unavailable');
   await expect(page.getByRole('alert')).toContainText('FastAPI');
-  await expectStatus(page, 'Idle');
+  await expectStatus(page, 'Error');
   await expect(page.getByTestId(/^lab-probability-/)).toHaveCount(0);
   await expect(page.getByTestId(/^lab-count-/)).toHaveCount(0);
   await expect(page.getByRole('tablist', { name: 'Result views', exact: true })).toHaveCount(0);

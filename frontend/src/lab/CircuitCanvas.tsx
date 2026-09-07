@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import type { Gate, SimulationRequest } from '../api/types';
 
 export interface CircuitCanvasProps {
@@ -9,33 +9,38 @@ export interface CircuitCanvasProps {
   onCell: (qubit: number, index: number) => void;
   onSelect: (id: string) => void;
   onCancel: () => void;
+  onDeselect: () => void;
+  dragTool: Gate['type'] | null;
+  onDrop: (type: Gate['type'], qubit: number, index: number) => void;
 }
 
 export default function CircuitCanvas({
-  request, selectedId, tool, pendingCX, onCell, onSelect, onCancel,
+  request, selectedId, tool, pendingCX, onCell, onSelect, onCancel, onDeselect, dragTool, onDrop,
 }: CircuitCanvasProps) {
   const instructionsId = useId();
+  const [dropCell, setDropCell] = useState<string | null>(null);
   const qubits = Array.from({ length: request.numQubits }, (_, index) => index);
 
   return (
     <div className="circuit-canvas">
       <header className="circuit-canvas-header">
         <div>
-          <span className="lab-eyebrow">Build & explore</span>
+          <span className="lab-eyebrow">COMPOSER</span>
           <h2>Circuit workspace</h2>
         </div>
         <span className="lab-chip">{request.numQubits} qubits · {request.gates.length} gates</span>
       </header>
 
       <p id={instructionsId} className="circuit-instructions">
-        Select a gate in the palette, then click a wire. For CX, choose the control
-        first, then the target at the <strong>same step</strong>. Empty cells insert
-        before that step; the final column appends. Click a gate to inspect it.
+        {selectedId ? 'Edit the selected gate below, or choose a palette tool to place gates.'
+          : tool === 'cx' ? 'Choose the control wire, then a different target at the same step.'
+          : 'Click a + cell to place a gate. Click an existing gate to edit it.'}
       </p>
 
-      <div className="circuit-mode">
-        <span className="circuit-tool-badge">{tool.toUpperCase()}</span>
-        <span>{pendingCX ? 'Choose a CX target' : `${tool.toUpperCase()} placement tool`}</span>
+      <div className="circuit-mode" data-editing={Boolean(selectedId)}>
+        <span className="circuit-tool-badge">{selectedId ? 'EDIT' : tool.toUpperCase()}</span>
+        <span>{selectedId ? 'Gate selected' : pendingCX ? 'Choose a CX target' : `${tool.toUpperCase()} placement tool`}</span>
+        {selectedId && <button onClick={onDeselect}>Deselect</button>}
         <span className="circuit-direction">Execution left to right <span aria-hidden="true">→</span></span>
       </div>
 
@@ -108,7 +113,23 @@ export default function CircuitCanvas({
                       : `Select ${gate.type.toUpperCase()} gate at step ${index + 1}`
                     : `Place gate on q${qubit} at step ${index + 1}`;
                   return (
-                    <div key={qubit} className="circuit-cell" data-preview={previewControl}>
+                    <div key={qubit} className="circuit-cell" data-preview={previewControl}
+                      data-drop-target={dragTool !== null && !occupied && request.gates.length < 256}
+                      data-drag-over={dragTool !== null && dropCell === `${index}:${qubit}`}
+                      onDragOver={(event) => {
+                        if (!dragTool || occupied || request.gates.length >= 256) return;
+                        event.preventDefault(); event.dataTransfer.dropEffect = 'copy';
+                        setDropCell(`${index}:${qubit}`);
+                      }}
+                      onDragLeave={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropCell(null);
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault(); setDropCell(null);
+                        if (!dragTool || occupied || request.gates.length >= 256) return;
+                        if (event.dataTransfer.getData('application/x-quantum-gate') !== dragTool) return;
+                        onDrop(dragTool, qubit, index);
+                      }}>
                       <button
                         type="button"
                         className={`circuit-cell-button ${occupied ? 'circuit-gate' : 'circuit-empty-cell'}${isControl ? ' circuit-control' : ''}${isTarget && gate?.type === 'cx' ? ' circuit-target' : ''}`}
@@ -136,7 +157,7 @@ export default function CircuitCanvas({
       </div>
 
       <div className="circuit-caption">
-        <span>{request.gates.length === 0 ? 'Empty circuit · all qubits start in |0⟩.' : 'One operation per step · gates run in array order.'}</span>
+        <span>{request.gates.length === 0 ? 'Empty circuit · start with H on q0, or load a template.' : `${request.gates.length} / 256 gates · one operation per step`}</span>
         <span>All qubits measured at the end.</span>
       </div>
     </div>

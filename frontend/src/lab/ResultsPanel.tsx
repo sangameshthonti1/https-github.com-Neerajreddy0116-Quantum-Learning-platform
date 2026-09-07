@@ -32,16 +32,14 @@ export default function ResultsPanel({ request, result, stale, loading, error }:
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const id = useId();
   const response = result?.response;
-  const status = result ? stale ? 'Stale' : 'Current' : 'Idle';
   const retained = stale || loading || Boolean(error);
 
   return (
     <section className="lab-results-content" aria-label="Lab simulation results">
       <header className="lab-results-header">
         <h2>Results</h2>
-        <span className="lab-status" data-status={status.toLowerCase()} role="status">{status}</span>
+        {response && <span className="lab-chip">{response.shots.toLocaleString()} shots</span>}
       </header>
-      <p className="lab-engine-note"><span aria-hidden="true" />Local CPU · Qiskit Aer · noiseless</p>
 
       {loading && <p className="lab-notice" role="status">Running simulation… {result ? 'Showing the last successful result snapshot until this run completes.' : 'Results will appear when this run completes.'}</p>}
       {error && (
@@ -64,8 +62,7 @@ export default function ResultsPanel({ request, result, stale, loading, error }:
         <div className="lab-results-empty">
           <span className="lab-empty-symbol" aria-hidden="true">|ψ⟩</span>
           <h3>No simulation results yet</h3>
-          <p>Build a circuit, then select Run to see ideal probabilities, sampled counts, and the statevector.</p>
-          <p className="lab-muted">Current circuit: {circuitSummary(request)}.</p>
+          <p>Select Run Simulation to explore probabilities, counts, and amplitudes.</p>
         </div>
       ) : (
         <div className="lab-result-snapshot">
@@ -161,12 +158,14 @@ export default function ResultsPanel({ request, result, stale, loading, error }:
               )}
             </div>
           ))}
-          <p className="lab-bit-note">Labels: <code>q[n−1]…q[0]</code>; q0 is the rightmost, least-significant bit. All qubits are measured at the end; the statevector is saved before measurement.</p>
         </>
       )}
 
       <details className="lab-details">
         <summary>Details</summary>
+        <h3>Reading the results</h3>
+        <p className="lab-muted">Labels: <code>q[n−1]…q[0]</code>; q0 is the rightmost, least-significant bit. For example, X on q0 in a two-qubit circuit gives 01. All qubits are measured at the end; the statevector is saved before measurement.</p>
+        <p className="lab-muted">Simulator: local Qiskit Aer, noiseless CPU. Initial state: |0…0⟩. Current seed: {request.seedSimulator ?? 'chosen by simulator'}.</p>
         {response && (
           <>
             <h3>Result execution metadata</h3>
