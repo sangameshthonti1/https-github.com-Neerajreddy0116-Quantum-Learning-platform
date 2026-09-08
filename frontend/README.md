@@ -9,17 +9,39 @@ Algorithms and Challenges are clearly marked upcoming. The lesson and Lab use a
 compact global rail; on mobile, open the navigation drawer from the topbar.
 
 Ordinary navigation restores the current circuit and retains undo history in
-memory. Reload retains circuit drafts but starts new undo history. Guided H and
-H→H drafts are independent of free exploration; use **Open free exploration**
+memory. Reload retains circuit drafts but starts new undo history. Every guided
+lesson experiment has an independent draft; use **Open free exploration**
 in the guided Lab footer to restore the free circuit. Returning to a Lab requires
 new simulation/trace inspection before collecting evidence. Collected lesson
 evidence remains saved in this tab’s session.
 
-The verified lesson checkpoint is local commit `0694d35`. The shell is on
-`prebuild/app-shell`, intentionally uncommitted for review. See
-[the shell architecture and verification report](../docs/APP_SHELL.md).
+The current curriculum milestone is on `prebuild/foundations-curriculum`,
+uncommitted for review. See [the curriculum report](../docs/FOUNDATIONS_CURRICULUM.md)
+and [the earlier shell report](../docs/APP_SHELL.md).
 
-## First guided lesson
+## Four guided foundations lessons
+
+The learning path is measurement → superposition → phase → entanglement:
+
+| Route | Learning focus | Activities |
+| --- | --- | --- |
+| `/learn/measurement` | Bits, qubits, preparation, measurement, sampling | 8 sections; empty, X, H experiments |
+| `/learn/superposition` | Amplitudes and the Hadamard gate | Original 9 sections; H and H→H experiments |
+| `/learn/phase` | Relative/global phase and interference | 8 sections; H→H and H→Z→H experiments |
+| `/learn/entanglement` | Bit order, controlled-X, joint/reduced Bell states | 8 sections; Bell experiment with three trace steps |
+
+All sections can be opened freely. Each new lesson requires its checked concept
+and observation answers, verified experiments, and a perfect quiz attempt for
+completion. Predictions are recorded without grading and remain visible.
+Quiz retries preserve earlier attempts. Dashboard, catalog, and progress use
+these actual session records. Progress is **session-only**, without an account.
+
+Each guided Lab opens empty on first use and restores its own draft afterward.
+The Lab requires a prediction, matching real simulation and trace responses,
+and inspection of every step before collecting. Editing a circuit never relabels
+an archived result. See the curriculum report for precise evidence rules.
+
+## Preserved superposition lesson
 
 Open **http://127.0.0.1:5173/learn/superposition** for **Superposition and the
 Hadamard Gate**, or follow “Learn: Superposition” in the Lab toolbar. Nine short

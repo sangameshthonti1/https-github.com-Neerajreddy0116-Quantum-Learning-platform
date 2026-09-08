@@ -200,3 +200,4 @@ body:has(.q-app) { margin: 0; background: var(--q-paper); }
 @media (max-width: 760px) { .q-app[data-compact="true"] .q-app-body { margin-left: 0; } }
 @media (max-width: 360px) { .q-page { padding-inline: 12px; }.q-hero-copy { padding: 25px 20px; }.q-continue-body { grid-template-columns: 1fr; }.q-h-gate { display: none; }.q-session-label { display: none; }.q-app .lesson .lesson-header > span { display: none; }.q-lesson-card { padding: 20px; } }
 @media (prefers-reduced-motion: reduce) { .q-app *, .q-app *::before, .q-app *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.q-record-stack { display: grid; gap: 24px; min-width: 0; }

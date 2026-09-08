@@ -93,14 +93,19 @@ export function editorReducer(history: History, action: Edit): History {
 }
 
 const histories = new Map<string, History>();
+export function validCircuitDraft(draft: unknown): draft is SimulationRequest {
+  if (!draft || typeof draft !== 'object') return false;
+  const value = draft as SimulationRequest;
+  return value.backend === 'qiskit' && Array.isArray(value.gates) && value.gates.every((gate) =>
+    gate && ['h', 'x', 'z', 'cx'].includes(gate.type) && typeof gate.id === 'string' && !!gate.id.trim() && gate.id.length <= 64
+    && Array.isArray(gate.targets) && Array.isArray(gate.controls))
+    && (value.seedSimulator == null || (Number.isInteger(value.seedSimulator) && value.seedSimulator >= 0 && value.seedSimulator <= 4294967295))
+    && validate(value) === null;
+}
 function restoreDraft(key: string): SimulationRequest | undefined {
   try {
     const draft = JSON.parse(sessionStorage.getItem(`qlp-circuit-${key}-v1`) ?? 'null') as SimulationRequest | null;
-    if (draft?.backend !== 'qiskit' || !Array.isArray(draft.gates) || draft.gates.some((gate) =>
-      !gate || !['h', 'x', 'z', 'cx'].includes(gate.type) || typeof gate.id !== 'string' || !gate.id.trim() || gate.id.length > 64
-      || !Array.isArray(gate.targets) || !Array.isArray(gate.controls))) return;
-    if (draft.seedSimulator != null && (!Number.isInteger(draft.seedSimulator) || draft.seedSimulator < 0 || draft.seedSimulator > 4294967295)) return;
-    if (!validate(draft)) return draft;
+    if (validCircuitDraft(draft)) return draft;
   } catch { /* Malformed/unavailable storage must never prevent opening the Lab. */ }
 }
 export function useCircuitEditor(initialRequest?: SimulationRequest, workspaceKey?: string) {

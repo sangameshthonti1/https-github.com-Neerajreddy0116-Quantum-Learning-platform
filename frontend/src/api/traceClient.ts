@@ -8,7 +8,7 @@ const complex = (v: unknown): v is ComplexAmplitude => record(v) && finite(v.rea
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Validate the wire format and snapshot identity before exposing any trace. */
-function validTrace(v: unknown, request: SimulationRequest): v is TraceResponse {
+export function validTrace(v: unknown, request: SimulationRequest): v is TraceResponse {
   if (!record(v) || v.backend !== 'qiskit' || v.numQubits !== request.numQubits) return false;
   const basis = Array.from({ length: 2 ** request.numQubits }, (_, i) => i.toString(2).padStart(request.numQubits, '0'));
   if (!same(v.basisOrder, basis) || !Array.isArray(v.steps) || v.steps.length !== request.gates.length + 1) return false;

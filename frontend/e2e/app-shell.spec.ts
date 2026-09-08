@@ -53,15 +53,15 @@ test('dashboard and curriculum use real availability and do not create lesson ac
   await page.screenshot({ path: info.outputPath('dashboard-desktop.png'), fullPage: true });
   await nav(page, 'Learn');
   await expect(page).toHaveURL('/learn');
-  await expect(page.getByRole('article')).toHaveCount(3);
-  await expect(page.getByRole('link', { name: 'Start lesson', exact: true })).toHaveCount(1);
-  await button(page, 'Available now 1').click();
-  await expect(page.getByRole('article')).toHaveCount(1);
-  await button(page, 'All topics 3').click();
+  await expect(page.getByRole('article')).toHaveCount(4);
+  await expect(page.getByRole('link', { name: 'Start lesson', exact: true })).toHaveCount(4);
+  await button(page, 'Available now 4').click();
+  await expect(page.getByRole('article')).toHaveCount(4);
+  await button(page, 'All topics 4').click();
   await page.screenshot({ path: info.outputPath('curriculum-desktop.png'), fullPage: true });
   await nav(page, 'Progress');
   await expect(page.getByRole('progressbar')).toHaveAttribute('value', '0');
-  await expect(page.getByText('No lesson activity yet.', { exact: false })).toBeVisible();
+  await expect(page.getByText('No lesson activity yet.', { exact: false })).toHaveCount(4);
   expect(await page.evaluate(() => sessionStorage.getItem('qlp-superposition-v1'))).toBeNull();
   expect(errors).toEqual([]);
 });
@@ -142,7 +142,7 @@ test('free circuit and undo history survive navigation, browser history, and dra
 test('guided exercise drafts are isolated from free exploration and both can be resumed', async ({ page }) => {
   await page.goto('/lab');
   await button(page, 'Choose X gate').click(); await button(page, 'Place gate on q0 at step 1').click();
-  await nav(page, 'Learn'); await page.getByRole('link', { name: 'Start lesson', exact: true }).click();
+  await nav(page, 'Learn'); await page.getByRole('article').filter({ hasText: 'Superposition & the Hadamard gate' }).getByRole('link', { name: 'Start lesson', exact: true }).click();
   await section(page, 5).click(); await page.getByRole('link', { name: 'Open the Lab: build one H →' }).click();
   await expect(button(page, 'Select X gate at step 1')).toHaveCount(0);
   await button(page, 'Choose H gate').click(); await button(page, 'Place gate on q0 at step 1').click();
@@ -161,7 +161,7 @@ for (const mobile of [false, true]) test(`real ${mobile ? 'mobile' : 'desktop'} 
   if (mobile) { await page.setViewportSize({ width: 390, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' }); }
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/'); await nav(page, 'Learn');
-  await page.getByRole('link', { name: 'Start lesson', exact: true }).click();
+  await page.getByRole('article').filter({ hasText: 'Superposition & the Hadamard gate' }).getByRole('link', { name: 'Start lesson', exact: true }).click();
   await section(page, 8).click(); await expect(page.getByRole('progressbar')).toHaveAttribute('value', '0');
   await section(page, 4).click();
   await page.getByRole('radio', { name: '50% zero / 50% one', exact: true }).check();
@@ -206,7 +206,8 @@ test('blocked storage retains lesson and circuit during client navigation', asyn
     Storage.prototype.getItem = () => { throw new DOMException('Blocked', 'SecurityError'); };
     Storage.prototype.setItem = () => { throw new DOMException('Blocked', 'SecurityError'); };
   });
-  await page.goto('/'); await page.getByRole('link', { name: 'Start your quantum journey' }).click();
+  await page.goto('/'); await nav(page, 'Learn');
+  await page.getByRole('article').filter({ hasText: 'Superposition & the Hadamard gate' }).getByRole('link', { name: 'Start lesson', exact: true }).click();
   await button(page, 'Mark as read').click();
   await nav(page, 'Circuit Lab'); await button(page, 'Place gate on q0 at step 1').click();
   await nav(page, 'Dashboard'); await expect(page.getByRole('progressbar')).toHaveAttribute('value', '1');

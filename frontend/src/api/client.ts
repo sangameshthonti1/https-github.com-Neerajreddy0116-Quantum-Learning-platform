@@ -17,7 +17,7 @@ function nonnegativeInteger(value: unknown): value is number {
 }
 
 /** Check the HTTP boundary rather than trusting a TypeScript cast of arbitrary JSON. */
-function isSimulationResponse(value: unknown): value is SimulationResponse {
+export function isSimulationResponse(value: unknown): value is SimulationResponse {
   if (!isRecord(value) || value.backend !== 'qiskit') return false;
   const { numQubits, probabilities, counts, statevector, shots, metadata } = value;
   if (!nonnegativeInteger(numQubits) || numQubits < 1 || numQubits > 3) return false;
@@ -95,7 +95,9 @@ export async function simulateCircuit(
       throw new Error('The API returned invalid JSON. Check that the Vite proxy points to the FastAPI backend.');
     }
     if (!response.ok) throw httpError(response.status, body);
-    if (!isSimulationResponse(body) || body.numQubits !== request.numQubits || body.shots !== request.shots) {
+    if (!isSimulationResponse(body) || body.numQubits !== request.numQubits || body.shots !== request.shots
+      || body.metadata.gateCount !== request.gates.length
+      || (request.seedSimulator != null && body.metadata.seedSimulator !== request.seedSimulator)) {
       throw new Error('The API response does not match the simulation contract. No results were displayed.');
     }
     return body;

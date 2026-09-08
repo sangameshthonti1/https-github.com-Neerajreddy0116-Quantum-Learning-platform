@@ -13,10 +13,11 @@ export interface CircuitCanvasProps {
   dragTool: Gate['type'] | null;
   onDrop: (type: Gate['type'], qubit: number, index: number) => void;
   traceStep: TraceStep | null;
+  emptyHint?: string;
 }
 
 export default function CircuitCanvas({
-  request, selectedId, tool, pendingCX, onCell, onSelect, onCancel, onDeselect, dragTool, onDrop, traceStep,
+  request, selectedId, tool, pendingCX, onCell, onSelect, onCancel, onDeselect, dragTool, onDrop, traceStep, emptyHint,
 }: CircuitCanvasProps) {
   const instructionsId = useId();
   const [dropCell, setDropCell] = useState<string | null>(null);
@@ -167,7 +168,7 @@ export default function CircuitCanvas({
       </div>
 
       <div className="circuit-caption">
-        <span>{request.gates.length === 0 ? 'Empty circuit · start with H on q0, or load a template.' : `${request.gates.length} / 256 gates · one operation per step`}</span>
+        <span>{request.gates.length === 0 ? emptyHint ?? 'Empty circuit · start with H on q0, or load a template.' : `${request.gates.length} / 256 gates · one operation per step`}</span>
         <span>All qubits measured at the end.</span>
       </div>
     </div>

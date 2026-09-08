@@ -1,0 +1,29 @@
+.foundation-visual { margin: 28px 0; padding: clamp(16px, 3vw, 26px); border: 1px solid #cbdced; border-radius: 12px; background: linear-gradient(140deg, #f0f6ff, #f6fbfc); }
+.foundation-visual figcaption { font-size: 10px; letter-spacing: .08em; font-weight: 700; color: #42648a; margin-bottom: 20px; }
+.foundation-visual button { margin: 12px 0; }
+.foundation-visual button[aria-pressed="true"] { background: #dceaff; border-color: #567bb3; }
+.foundation-bit, .foundation-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.foundation-token { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 12px; background: #17385d; color: white; font-size: 32px; }
+.foundation-pair-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+.foundation-pair-cards > div { display: flex; flex-direction: column; gap: 10px; padding: 18px 12px; background: #fff; border: 1px solid #dae4ef; border-radius: 8px; }
+.foundation-pair-cards strong { font-size: clamp(20px, 2.5vw, 28px); color: #245bc1; font-weight: 550; }
+.foundation-pair-cards span, .foundation-pair-cards b { font-size: 13px; line-height: 1.6; font-weight: 450; }
+.foundation-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; list-style: none; padding: 0; }
+.foundation-flow li { display: flex; flex-direction: column; border-top: 3px solid #487cb8; padding: 14px 0; }
+.foundation-flow li strong { color: #214b7e; }
+.foundation-flow li span { font-size: 13px; }
+.foundation-pair-label { font-size: 38px; color: #245bc1; letter-spacing: .08em; }
+.foundation-table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; }
+.foundation-table caption { text-align: left; font-size: 12px; color: #46617f; padding-bottom: 10px; }
+.foundation-table th, .foundation-table td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #d5e1ef; }
+.foundation-table th { font-weight: 600; }
+.foundation-lesson .foundation-outcomes { max-width: 760px; margin-top: 14px; }
+.foundation-lesson pre { max-width: 100%; max-height: 420px; overflow: auto; font-size: 12px; line-height: 1.6; background: #f5f8fc; padding: 16px; }
+.foundation-lesson fieldset { min-width: 0; }
+.q-record-stack { display: grid; gap: 24px; min-width: 0; }
+@media (max-width: 520px) {
+  .foundation-pair-cards, .foundation-flow { grid-template-columns: minmax(0, 1fr); }
+  .foundation-table { font-size: 12px; }
+  .foundation-table th, .foundation-table td { padding: 10px 4px; }
+  .q-app .foundation-lesson .lesson-progress nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from './navigation';
 import { Icon, type IconName } from './ui';
+import { foundations, isFoundationId } from '../lesson/foundations/content';
 
 const items: { href: string; label: string; icon: IconName; upcoming?: boolean }[] = [
   { href: '/', label: 'Dashboard', icon: 'dashboard' },
@@ -24,13 +25,14 @@ function initialCollapsed() {
   try { return localStorage.getItem('qlp-navigation-collapsed') === 'true'; } catch { return false; }
 }
 export default function AppShell({ path, children }: { path: string; children: ReactNode }) {
-  const focused = path.startsWith('/lab') || path === '/learn/superposition';
+  const focused = path.startsWith('/lab') || path.startsWith('/learn/');
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [expanded, setExpanded] = useState(false);
   const drawer = useRef<HTMLDialogElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const content = useRef<HTMLDivElement>(null);
-  const title = path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
+  const lessonId = path.slice('/learn/'.length);
+  const title = path.startsWith('/learn/') && isFoundationId(lessonId) ? foundations[lessonId].title : path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
   useEffect(() => {
     document.title = `${title} · Quantum Learning`;
     setExpanded(false);

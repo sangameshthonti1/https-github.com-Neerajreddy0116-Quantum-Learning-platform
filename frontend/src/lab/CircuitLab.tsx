@@ -11,14 +11,19 @@ import BlochSphere from './BlochSphere';
 import { useStateTrace } from './useStateTrace';
 import { circuitKey, useCircuitEditor } from './useCircuitEditor';
 import LessonLabGuide from '../lesson/LessonLabGuide';
-import { lessonCircuit, updateLesson, type Experiment } from '../lesson/lessonState';
+import { lessonCircuit, updateLesson } from '../lesson/lessonState';
+import FoundationLabGuide from '../lesson/foundations/FoundationLabGuide';
+import { blankExperiment, foundationCircuit, updateFoundation } from '../lesson/foundations/state';
+import { getExperiment } from '../lesson/foundations/content';
 import { Link } from '../app/navigation';
-import { rememberWorkspace } from '../app/workspace';
+import { foundationWorkspace, rememberWorkspace, type WorkspaceExperiment } from '../app/workspace';
 import './lab.css';
 import './explorer.css';
 
-export default function CircuitLab({ experiment = null, initialExploring = false }: { experiment?: Experiment | null; initialExploring?: boolean }) {
-  const [initialRequest] = useState(() => experiment ? lessonCircuit(experiment) : undefined);
+export default function CircuitLab({ experiment = null, initialExploring = false }: { experiment?: WorkspaceExperiment | null; initialExploring?: boolean }) {
+  const guided = foundationWorkspace(experiment);
+  const legacy = experiment === 'h' || experiment === 'hh' ? experiment : null;
+  const [initialRequest] = useState(() => guided ? foundationCircuit(guided.id, guided.experiment) : legacy ? lessonCircuit(legacy) : undefined);
   const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor(initialRequest, experiment ?? 'free');
   const trace = useStateTrace(request);
   const [exploring, setExploring] = useState(initialExploring);
@@ -44,7 +49,9 @@ export default function CircuitLab({ experiment = null, initialExploring = false
   useEffect(() => { rememberWorkspace(experiment); }, [experiment]);
   useEffect(() => { setExploring(initialExploring); setMobilePanel('circuit'); }, [initialExploring]);
   useEffect(() => {
-    if (experiment) updateLesson((s) => ({ ...s, drafts: { ...s.drafts, [experiment]: request } }));
+    const foundation = foundationWorkspace(experiment);
+    if (foundation) updateFoundation(foundation.id, (s) => ({ ...s, drafts: { ...s.drafts, [foundation.experiment]: request } }));
+    else if (experiment === 'h' || experiment === 'hh') updateLesson((s) => ({ ...s, drafts: { ...s.drafts, [experiment]: request } }));
   }, [experiment, request]);
   // Pending placement belongs to a particular circuit revision, never an undone one.
   useEffect(() => { setPendingCX(null); setPlacementError(null); }, [request]);
@@ -120,7 +127,7 @@ export default function CircuitLab({ experiment = null, initialExploring = false
         <button onClick={() => { setExploring(true); setSelectedId(null); setMobilePanel('circuit'); void trace.run(); }} disabled={trace.loading || shotsPending || pendingCX !== null}>Explore steps</button>
         <button className="lab-primary" onClick={() => { void run(); setExploring(false); setMobilePanel('results'); }} disabled={loading || shotsPending || pendingCX !== null} aria-label="Run Simulation">{loading ? 'Running…' : 'Run Simulation'} <span aria-hidden="true">▶</span></button>
       </div>
-      <Link className="lab-lesson-link" href="/learn/superposition">{experiment ? 'Return to lesson' : 'Learn: Superposition'}</Link>
+      <Link className="lab-lesson-link" href={guided ? `/learn/${guided.id}` : '/learn/superposition'}>{experiment ? 'Return to lesson' : 'Learn: Superposition'}</Link>
     </header>
     <nav className="lab-mobile-nav" aria-label="Workspace panels">
       {(['settings', 'circuit', 'results'] as const).map((panel) => <button key={panel} aria-pressed={mobilePanel === panel} data-active={mobilePanel === panel} onClick={() => { setMobilePanel(panel); if (panel !== 'circuit') setExploring(false); }}>{panel === 'settings' ? 'Gates & settings' : panel === 'circuit' ? 'Circuit' : 'Results'}</button>)}
@@ -133,15 +140,19 @@ export default function CircuitLab({ experiment = null, initialExploring = false
           onDrag={setDragTool} />
       </aside>
       <section className="lab-workspace" ref={workspace}>
-        {experiment && <LessonLabGuide experiment={experiment} request={request} result={result} trace={trace} exploring={exploring}
+        {legacy && <LessonLabGuide experiment={legacy} request={request} result={result} trace={trace} exploring={exploring}
           busy={loading || trace.loading || shotsPending || pendingCX !== null} failed={error !== null}
           onReset={() => { dispatch({ type: 'replace', request: { numQubits: 1, gates: [], shots: 1024, backend: 'qiskit', seedSimulator: 42 } }); chooseTool('h'); }} />}
+        {guided && <FoundationLabGuide id={guided.id} experimentId={guided.experiment} request={request} result={result} trace={trace} exploring={exploring}
+          busy={loading || trace.loading || shotsPending || pendingCX !== null} failed={error !== null}
+          onReset={() => { dispatch({ type: 'replace', request: blankExperiment(getExperiment(guided.id, guided.experiment)!) }); chooseTool('h'); }} />}
         <div className="workspace-modes" aria-label="Workspace mode">
           <button aria-pressed={!exploring} onClick={() => setExploring(false)}>Circuit editor</button>
           <button aria-pressed={exploring} onClick={() => { setExploring(true); setSelectedId(null); }}>State Explorer</button>
         </div>
         {(editError || placementError) && <p role="alert" className="lab-notice">{placementError ?? editError}</p>}
         <CircuitCanvas request={request} selectedId={selected?.id ?? null} tool={tool} pendingCX={pendingCX} onCell={cell} dragTool={dragTool} onDrop={drop}
+          emptyHint={guided ? guided.experiment === 'empty' ? 'No gates needed for this baseline. Run Simulation, then Explore steps.' : 'Empty circuit · follow your experiment guide to place the first gate.' : undefined}
           traceStep={exploring ? trace.step : null}
           onSelect={(id) => { setExploring(false); setSelectedId(id); setPendingCX(null); setPlacementError(null); }} onDeselect={deselect} onCancel={() => { setPendingCX(null); setPlacementError(null); }} />
         <div hidden={exploring}>

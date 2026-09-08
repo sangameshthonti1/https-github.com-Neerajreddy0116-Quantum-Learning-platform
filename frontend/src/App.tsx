@@ -2,10 +2,12 @@ import { lazy, Suspense } from 'react';
 import AppShell from './app/AppShell';
 import { useLocation } from './app/navigation';
 import { workspaceExperiment } from './app/workspace';
+import { isFoundationId } from './lesson/foundations/content';
 import './app/design-system.css';
 
 const CircuitLab = lazy(() => import('./lab/CircuitLab'));
 const SuperpositionLesson = lazy(() => import('./lesson/SuperpositionLesson'));
+const FoundationLesson = lazy(() => import('./lesson/foundations/FoundationLesson'));
 const Dashboard = lazy(() => import('./app/Pages').then((pages) => ({ default: pages.Dashboard })));
 const Curriculum = lazy(() => import('./app/Pages').then((pages) => ({ default: pages.Curriculum })));
 const Progress = lazy(() => import('./app/Pages').then((pages) => ({ default: pages.Progress })));
@@ -26,10 +28,12 @@ export default function App() {
   // This developer page keeps its original isolated styles and document navigation.
   if (path === '/circuit-test') return <Suspense fallback={fallback}><CircuitTest /></Suspense>;
   const experiment = workspaceExperiment(url.search);
+  const lessonId = path.startsWith('/learn/') ? path.slice('/learn/'.length) : '';
   return <AppShell path={path}><Suspense fallback={fallback}>
     {path === '/' || path === '/dashboard' ? <Dashboard />
       : path === '/learn' ? <Curriculum />
         : path === '/learn/superposition' ? <SuperpositionLesson />
+          : isFoundationId(lessonId) ? <FoundationLesson key={lessonId} id={lessonId} />
           : path === '/lab' || path === '/lab/states' ? <CircuitLab key={experiment ?? 'free'} experiment={experiment} initialExploring={path === '/lab/states'} />
             : path === '/progress' ? <Progress />
               : path === '/algorithms' || path === '/challenges' ? <Upcoming kind={path.slice(1) as 'algorithms' | 'challenges'} /> : <NotFound />}

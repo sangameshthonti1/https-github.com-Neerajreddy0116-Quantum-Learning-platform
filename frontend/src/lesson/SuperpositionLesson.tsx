@@ -23,7 +23,7 @@ export default function SuperpositionLesson() {
   function move(next: number) { updateLesson((s) => visitSection(s, next)); }
   return <main className="lab lesson">
     <a className="lesson-skip" href="#lesson-content">Skip to lesson</a>
-    <header className="lesson-header"><Link href="/learn">← All lessons</Link><span>FOUNDATIONS <small>Lesson 01</small></span><Link href="/lab">Circuit Lab ↗</Link></header>
+    <header className="lesson-header"><Link href="/learn">← All lessons</Link><span>FOUNDATIONS <small>Lesson 02</small></span><Link href="/lab">Circuit Lab ↗</Link></header>
     <div className="lesson-title"><p>GUIDED LESSON · NO PRIOR KNOWLEDGE NEEDED</p><h1>Superposition and<br className="lesson-title-break" /> the Hadamard Gate</h1><p>One qubit. A new way to think. Two experiments you build yourself.</p></div>
     <div className="lesson-layout">
       <aside className="lesson-progress"><p>YOUR LEARNING PATH</p><p>Section {stage + 1} of {stages.length} · {completedCount} completed</p><progress aria-label="Lesson sections completed" max={stages.length} value={completedCount} />
