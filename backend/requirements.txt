@@ -28,3 +28,12 @@ rustworkx==0.18.1
 scipy==1.18.1
 six==1.17.0
 stevedore==5.9.1
+
+# Official OpenAI Responses SDK. No credentials are required for offline tests.
+openai==3.8.0
+jiter==0.16.0
+sniffio==1.3.1
+# Runtime HTTP transport used by the SDK (also used by FastAPI's test client).
+httpcore2==2.12.0
+httpx2==2.12.0
+truststore==0.10.4

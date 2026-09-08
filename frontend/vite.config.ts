@@ -20,6 +20,12 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       proxy: {
+        '/api/ai': {
+          target: url.origin,
+          changeOrigin: true,
+          timeout: 60_000,
+          proxyTimeout: 60_000,
+        },
         '/api': {
           target: url.origin,
           changeOrigin: true,

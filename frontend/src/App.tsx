@@ -4,6 +4,7 @@ import { useLocation } from './app/navigation';
 import { workspaceExperiment } from './app/workspace';
 import { isFoundationId } from './lesson/foundations/content';
 import './app/design-system.css';
+import { TutorProvider } from './tutor/TutorProvider';
 
 const CircuitLab = lazy(() => import('./lab/CircuitLab'));
 const SuperpositionLesson = lazy(() => import('./lesson/SuperpositionLesson'));
@@ -29,7 +30,7 @@ export default function App() {
   if (path === '/circuit-test') return <Suspense fallback={fallback}><CircuitTest /></Suspense>;
   const experiment = workspaceExperiment(url.search);
   const lessonId = path.startsWith('/learn/') ? path.slice('/learn/'.length) : '';
-  return <AppShell path={path}><Suspense fallback={fallback}>
+  return <TutorProvider path={path}><AppShell path={path}><Suspense fallback={fallback}>
     {path === '/' || path === '/dashboard' ? <Dashboard />
       : path === '/learn' ? <Curriculum />
         : path === '/learn/superposition' ? <SuperpositionLesson />
@@ -37,5 +38,5 @@ export default function App() {
           : path === '/lab' || path === '/lab/states' ? <CircuitLab key={experiment ?? 'free'} experiment={experiment} initialExploring={path === '/lab/states'} />
             : path === '/progress' ? <Progress />
               : path === '/algorithms' || path === '/challenges' ? <Upcoming kind={path.slice(1) as 'algorithms' | 'challenges'} /> : <NotFound />}
-  </Suspense></AppShell>;
+  </Suspense></AppShell></TutorProvider>;
 }

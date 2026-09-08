@@ -3,8 +3,9 @@
 Local-only FastAPI foundation for the SIH 2026 Quantum Learning Platform.
 Includes API liveness, configuration, CORS, documentation, and a real local
 Qiskit Aer simulator for 1–3 qubits with H/X/Z/CX gates.
-There is no AI tutoring, assessment, database, authentication, algorithm library,
-or learner-progress implementation yet.
+An optional contextual AI Tutor uses server-side OpenAI Responses and verified
+Qiskit traces; it is disabled until configured. There is no backend assessment,
+database, authentication, algorithm library, or learner-progress storage yet.
 
 ## Python and isolation
 
@@ -228,3 +229,9 @@ remain out of scope. Individual requests are bounded (3 qubits, 256 gates,
 8192 shots), but there is no aggregate rate/body limit or job queue. Keep the
 server bound to loopback; this unauthenticated milestone is not public-facing. Keep this work local until the hackathon starts; do not
 commit, push, or deploy it as part of this setup task.
+## AI Tutor v1
+
+The optional `POST /api/ai/tutor` integration uses the official OpenAI Responses
+SDK. It defaults to disabled and requires a server-side key, explicit model and
+`QLP_AI_ENABLED=true`. No live request is needed for tests. See
+[AI Tutor setup, architecture and limits](../docs/AI_TUTOR.md) before enabling usage.

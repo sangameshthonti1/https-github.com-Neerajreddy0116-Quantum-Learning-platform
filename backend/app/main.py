@@ -7,9 +7,11 @@ from fastapi.responses import RedirectResponse
 from app.api.router import api_router
 from app.core.config import Settings
 from app.core.cors import ApiCORSMiddleware
+from app.core.tutor_config import TutorSettings
+from app.services.tutor import TutorService
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, tutor_settings: TutorSettings | None = None) -> FastAPI:
     settings = settings if settings is not None else Settings()
     app = FastAPI(
         title=settings.api_title,
@@ -17,6 +19,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="Foundation for the Quantum Learning Platform API.",
     )
     app.state.settings = settings
+    app.state.tutor_service = TutorService(tutor_settings if tutor_settings is not None else TutorSettings())
 
     if settings.cors_origins:
         app.add_middleware(

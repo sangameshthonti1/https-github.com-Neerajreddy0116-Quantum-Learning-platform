@@ -364,3 +364,8 @@ The implementation uses `qiskit.QuantumCircuit`, `qiskit.transpile`,
 `qiskit_aer.AerSimulator`, and `qiskit_aer.library.SaveStatevector` with
 `simulator.run(...).result()`. It does not use removed `qiskit.execute`,
 `qiskit.Aer`, or `qiskit.providers.aer` imports.
+## AI Tutor extension
+
+The existing simulation and trace contracts are unchanged. `POST /api/ai/tutor`
+adds bounded contextual tutoring with independently computed Qiskit facts and
+validated, opt-in circuit proposals. See [AI Tutor contract, errors and limits](AI_TUTOR.md).

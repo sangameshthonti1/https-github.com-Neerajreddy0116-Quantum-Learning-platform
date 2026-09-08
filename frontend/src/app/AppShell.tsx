@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from './navigation';
 import { Icon, type IconName } from './ui';
 import { foundations, isFoundationId } from '../lesson/foundations/content';
+import { TutorLauncher } from '../tutor/TutorProvider';
 
 const items: { href: string; label: string; icon: IconName; upcoming?: boolean }[] = [
   { href: '/', label: 'Dashboard', icon: 'dashboard' },
@@ -71,6 +72,7 @@ export default function AppShell({ path, children }: { path: string; children: R
         <div className="q-breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong>{title}</strong></div>
         <span className="q-session-label"><span /> This tab’s session</span>
         {focused && <span className="q-focus-label">Focus workspace</span>}
+        {focused && <TutorLauncher />}
       </header>
       <div id="page-content" className="q-page-content" tabIndex={-1} ref={content}>{children}</div>
     </div>

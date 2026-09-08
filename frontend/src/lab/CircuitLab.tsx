@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Gate, SimulationRequest, SimulationResponse } from '../api/types';
 import { simulateCircuit } from '../api/client';
 import { templates } from '../templates';
@@ -19,6 +19,7 @@ import { Link } from '../app/navigation';
 import { foundationWorkspace, rememberWorkspace, type WorkspaceExperiment } from '../app/workspace';
 import './lab.css';
 import './explorer.css';
+import { useTutorLabContext } from '../tutor/TutorProvider';
 
 export default function CircuitLab({ experiment = null, initialExploring = false }: { experiment?: WorkspaceExperiment | null; initialExploring?: boolean }) {
   const guided = foundationWorkspace(experiment);
@@ -44,6 +45,11 @@ export default function CircuitLab({ experiment = null, initialExploring = false
   const stale = result !== null && circuitKey(request) !== circuitKey(result.request);
   const status = error ? 'Error' : result ? stale ? 'Stale' : 'Current' : 'Idle';
   const traceStatus = trace.loading ? 'Tracing' : trace.error ? 'Error' : trace.stale || trace.cancelled ? 'Stale' : trace.step ? 'Current' : 'Idle';
+  const applyTutorCircuit = useCallback((next: SimulationRequest) => {
+    dispatch({ type: 'replace', request: next }); setSelectedId(null); setPendingCX(null); setPlacementError(null);
+  }, [dispatch]);
+  useTutorLabContext({ circuit: request, selectedStep: exploring && trace.step ? trace.step.index : null,
+    lessonId: guided?.id ?? (legacy ? 'superposition' : null), apply: applyTutorCircuit });
 
   useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
   useEffect(() => { rememberWorkspace(experiment); }, [experiment]);

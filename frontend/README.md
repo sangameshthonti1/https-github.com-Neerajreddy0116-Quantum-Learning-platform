@@ -56,7 +56,8 @@ An interactive React + TypeScript + Vite scientific workspace connected to the
 **real local FastAPI + Qiskit Aer simulation API**. The lab is at `/lab`; the original
 Circuit Test page remains independently accessible at `/circuit-test` with all
 of its original integration assertions preserved. No new dependencies were
-added for the editor. No AI, authentication, database, external fonts, unsupported
+added for the editor or tutor UI. Contextual AI tutoring is optional and requires
+backend configuration. No authentication, database, external fonts, unsupported
 gates, or client-side simulated results are included.
 
 ## Requirements and install
@@ -389,3 +390,9 @@ frontend/
 ├── package.json
 └── package-lock.json
 ```
+## Contextual AI Tutor
+
+AI Tutor opens from the shell in lessons and the Lab. Qiskit facts are separate
+from AI explanations, and circuit proposals require preview and confirmation.
+The backend defaults to unconfigured; the frontend never fabricates answers.
+See [AI Tutor v1](../docs/AI_TUTOR.md) for setup, privacy, limits and verification.
