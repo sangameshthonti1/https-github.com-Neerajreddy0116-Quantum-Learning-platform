@@ -178,6 +178,7 @@ for (const mobile of [false, true]) test(`complete ${mobile ? 'mobile reduced-mo
   for (const [i, group] of (await quizGroups(page).all()).entries()) await group.getByRole('radio').nth(answers[i]!).check();
   await button(page, 'Grade my answers').click();
   await expect(page.getByRole('region', { name: 'Lesson complete' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Continue exploring in the Circuit Lab →' })).toHaveAttribute('href', '/lab');
   await expect(page.getByRole('status')).toContainText('5 of 5 correct');
   await page.reload();
   await expect(page.getByRole('region', { name: 'Lesson complete' })).toBeVisible();

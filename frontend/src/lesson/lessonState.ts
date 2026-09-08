@@ -26,7 +26,7 @@ export interface LessonState {
   quizAttempts: { answers: Record<string, number> }[];
 }
 const storageKey = 'qlp-superposition-v1';
-const initial = (): LessonState => ({ version: 1, stage: 0, furthest: 0, checks: {}, predictions: {}, evidence: {}, drafts: {}, answers: {}, graded: false, visited: [0], readings: [], quizAttempts: [] });
+const initial = (): LessonState => ({ version: 1, stage: 0, furthest: 0, checks: {}, predictions: {}, evidence: {}, drafts: {}, answers: {}, graded: false, visited: [], readings: [], quizAttempts: [] });
 function restore(): LessonState {
   try {
     const s = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') as LessonState | null;

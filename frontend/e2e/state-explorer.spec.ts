@@ -65,7 +65,7 @@ test.beforeAll(startBackend);
 test.afterAll(stopBackend);
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/');
+  await page.goto('/lab');
   await expect(page.getByRole('heading', { name: 'Circuit Lab', exact: true })).toBeVisible();
 });
 

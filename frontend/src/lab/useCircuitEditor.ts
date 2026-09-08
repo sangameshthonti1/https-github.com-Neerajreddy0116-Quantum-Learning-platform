@@ -1,4 +1,4 @@
-import { useReducer } from 'react';
+import { useLayoutEffect, useReducer } from 'react';
 import type { Gate, SimulationRequest } from '../api/types';
 
 export const emptyCircuit = (): SimulationRequest => ({
@@ -92,9 +92,27 @@ export function editorReducer(history: History, action: Edit): History {
   return { past: [...past, present].slice(-100), present: next, future: [], error: null };
 }
 
-export function useCircuitEditor(initialRequest?: SimulationRequest) {
-  const [history, dispatch] = useReducer(editorReducer, undefined, () => ({
-    past: [], present: initialRequest ? structuredClone(initialRequest) : emptyCircuit(), future: [], error: null,
-  }));
+const histories = new Map<string, History>();
+function restoreDraft(key: string): SimulationRequest | undefined {
+  try {
+    const draft = JSON.parse(sessionStorage.getItem(`qlp-circuit-${key}-v1`) ?? 'null') as SimulationRequest | null;
+    if (draft?.backend !== 'qiskit' || !Array.isArray(draft.gates) || draft.gates.some((gate) =>
+      !gate || !['h', 'x', 'z', 'cx'].includes(gate.type) || typeof gate.id !== 'string' || !gate.id.trim() || gate.id.length > 64
+      || !Array.isArray(gate.targets) || !Array.isArray(gate.controls))) return;
+    if (draft.seedSimulator != null && (!Number.isInteger(draft.seedSimulator) || draft.seedSimulator < 0 || draft.seedSimulator > 4294967295)) return;
+    if (!validate(draft)) return draft;
+  } catch { /* Malformed/unavailable storage must never prevent opening the Lab. */ }
+}
+export function useCircuitEditor(initialRequest?: SimulationRequest, workspaceKey?: string) {
+  const [history, dispatch] = useReducer(editorReducer, undefined, () => {
+    if (workspaceKey && histories.has(workspaceKey)) return histories.get(workspaceKey)!;
+    const request = initialRequest ?? (workspaceKey ? restoreDraft(workspaceKey) : undefined);
+    return { past: [], present: request ? structuredClone(request) : emptyCircuit(), future: [], error: null };
+  });
+  useLayoutEffect(() => {
+    if (!workspaceKey) return;
+    histories.set(workspaceKey, history);
+    try { sessionStorage.setItem(`qlp-circuit-${workspaceKey}-v1`, JSON.stringify(history.present)); } catch { /* Retain the in-memory draft. */ }
+  }, [history, workspaceKey]);
   return { request: history.present, error: history.error, dispatch, canUndo: history.past.length > 0, canRedo: history.future.length > 0 };
 }

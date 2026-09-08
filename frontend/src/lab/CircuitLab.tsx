@@ -12,16 +12,16 @@ import { useStateTrace } from './useStateTrace';
 import { circuitKey, useCircuitEditor } from './useCircuitEditor';
 import LessonLabGuide from '../lesson/LessonLabGuide';
 import { lessonCircuit, updateLesson, type Experiment } from '../lesson/lessonState';
+import { Link } from '../app/navigation';
+import { rememberWorkspace } from '../app/workspace';
 import './lab.css';
 import './explorer.css';
 
-export default function CircuitLab() {
-  const params = new URLSearchParams(window.location.search);
-  const experiment: Experiment | null = params.get('lesson') === 'superposition' && ['h', 'hh'].includes(params.get('experiment') ?? '') ? params.get('experiment') as Experiment : null;
+export default function CircuitLab({ experiment = null, initialExploring = false }: { experiment?: Experiment | null; initialExploring?: boolean }) {
   const [initialRequest] = useState(() => experiment ? lessonCircuit(experiment) : undefined);
-  const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor(initialRequest);
+  const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor(initialRequest, experiment ?? 'free');
   const trace = useStateTrace(request);
-  const [exploring, setExploring] = useState(false);
+  const [exploring, setExploring] = useState(initialExploring);
   const [explorerPane, setExplorerPane] = useState<'joint' | 'qubit'>('joint');
   const [tool, setTool] = useState<Gate['type']>('h');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,6 +41,8 @@ export default function CircuitLab() {
   const traceStatus = trace.loading ? 'Tracing' : trace.error ? 'Error' : trace.stale || trace.cancelled ? 'Stale' : trace.step ? 'Current' : 'Idle';
 
   useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
+  useEffect(() => { rememberWorkspace(experiment); }, [experiment]);
+  useEffect(() => { setExploring(initialExploring); setMobilePanel('circuit'); }, [initialExploring]);
   useEffect(() => {
     if (experiment) updateLesson((s) => ({ ...s, drafts: { ...s.drafts, [experiment]: request } }));
   }, [experiment, request]);
@@ -105,8 +107,7 @@ export default function CircuitLab() {
     if (event.key === 'Escape' && (selected || pendingCX)) { event.preventDefault(); deselect(); }
   }}>
     <header className="lab-toolbar">
-      <a className="lab-brand" href="/" aria-label="Circuit Lab home"><span>q</span></a>
-      <div><p className="lab-eyebrow">QUANTUM LEARNING</p><h1>Circuit Lab</h1></div>
+      <div><p className="lab-eyebrow">{experiment ? 'GUIDED EXPERIMENT' : 'BUILD · RUN · OBSERVE'}</p><h1>Circuit Lab</h1></div>
       <span className="lab-status lab-toolbar-status" data-status={(exploring ? traceStatus : status).toLowerCase()} role="status">{exploring ? `Trace ${traceStatus.toLowerCase()}` : status}</span>
       <label className="lab-template-label">Load template<select aria-label="Load template" value="" onChange={(event) => {
         const template = templates.find((item) => item.id === event.target.value);
@@ -119,8 +120,7 @@ export default function CircuitLab() {
         <button onClick={() => { setExploring(true); setSelectedId(null); setMobilePanel('circuit'); void trace.run(); }} disabled={trace.loading || shotsPending || pendingCX !== null}>Explore steps</button>
         <button className="lab-primary" onClick={() => { void run(); setExploring(false); setMobilePanel('results'); }} disabled={loading || shotsPending || pendingCX !== null} aria-label="Run Simulation">{loading ? 'Running…' : 'Run Simulation'} <span aria-hidden="true">▶</span></button>
       </div>
-      <a className="lab-test-link" href="/circuit-test">Circuit Test ↗</a>
-      <a href="/learn/superposition">{experiment ? 'Return to lesson' : 'Learn: Superposition'}</a>
+      <Link className="lab-lesson-link" href="/learn/superposition">{experiment ? 'Return to lesson' : 'Learn: Superposition'}</Link>
     </header>
     <nav className="lab-mobile-nav" aria-label="Workspace panels">
       {(['settings', 'circuit', 'results'] as const).map((panel) => <button key={panel} aria-pressed={mobilePanel === panel} data-active={mobilePanel === panel} onClick={() => { setMobilePanel(panel); if (panel !== 'circuit') setExploring(false); }}>{panel === 'settings' ? 'Gates & settings' : panel === 'circuit' ? 'Circuit' : 'Results'}</button>)}
@@ -167,6 +167,6 @@ export default function CircuitLab() {
         <div hidden={exploring}><ResultsPanel request={request} result={result} stale={stale} loading={loading} error={error} /></div>
       </aside>
     </div>
-    <footer className="lab-footer"><span>Quantum Learning · Circuit Lab</span><span>Session only · last 100 edits undoable</span></footer>
+    <footer className="lab-footer"><span>{experiment ? <Link href="/lab?workspace=free">Open free exploration</Link> : 'Quantum Learning · Circuit Lab'}</span><span>Tab-session draft · last 100 edits undoable</span><a className="lab-test-link" href="/circuit-test">Circuit Test ↗</a></footer>
   </main>;
 }

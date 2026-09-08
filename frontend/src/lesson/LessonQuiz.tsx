@@ -1,3 +1,4 @@
+import { Link } from '../app/navigation';
 import { quiz, scoreQuiz } from './content';
 import { hasPassedQuiz, isLessonComplete, updateLesson, useLesson } from './lessonState';
 
@@ -25,6 +26,6 @@ export default function LessonQuiz() {
     {lesson.quizAttempts.length > 0 && <details><summary>Submitted quiz attempts ({lesson.quizAttempts.length})</summary><p>Retries keep your earlier attempts and any earned pass for this tab’s session.</p>
       {lesson.quizAttempts.map((attempt, index) => <section key={index} aria-label={`Quiz attempt ${index + 1}`}><h3>Attempt {index + 1}: {scoreQuiz(attempt.answers)} of {quiz.length} correct</h3><ul>{quiz.map((q) => <li key={q.id}>{q.prompt} Your answer: {q.options[attempt.answers[q.id]!]}. {q.feedback[attempt.answers[q.id]!]}</li>)}</ul></section>)}
     </details>}
-    {complete && <section className="lesson-complete" aria-label="Lesson complete"><span aria-hidden="true">✓</span><h2>Lesson complete</h2><p>You built and tested H and H followed by H. You can now connect amplitudes to probabilities, read a statevector, and explain how interference differs from a hidden classical bit.</p><p>You also know why equal chances do not guarantee equal sampled counts.</p><p><strong>Progress is only in this browser tab’s session, not saved to an account.</strong> Closing the tab ends this saved progress. Account progress and cross-device access are future work.</p><a href="/">Continue exploring in the Circuit Lab →</a></section>}
+    {complete && <section className="lesson-complete" aria-label="Lesson complete"><span aria-hidden="true">✓</span><h2>Lesson complete</h2><p>You built and tested H and H followed by H. You can now connect amplitudes to probabilities, read a statevector, and explain how interference differs from a hidden classical bit.</p><p>You also know why equal chances do not guarantee equal sampled counts.</p><p><strong>Progress is only in this browser tab’s session, not saved to an account.</strong> Closing the tab ends this saved progress. Account progress and cross-device access are future work.</p><Link href="/lab">Continue exploring in the Circuit Lab →</Link></section>}
   </>;
 }

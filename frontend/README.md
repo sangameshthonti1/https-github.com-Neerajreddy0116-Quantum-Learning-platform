@@ -1,4 +1,23 @@
-# Circuit Lab
+# Quantum Learning Platform
+
+## Application shell
+
+Open **http://127.0.0.1:5173/** for the student dashboard. `/learn` is the
+foundations curriculum, `/progress` shows actual tab-session activity, `/lab`
+opens the existing Circuit Lab, and `/lab/states` opens its State Explorer.
+Algorithms and Challenges are clearly marked upcoming. The lesson and Lab use a
+compact global rail; on mobile, open the navigation drawer from the topbar.
+
+Ordinary navigation restores the current circuit and retains undo history in
+memory. Reload retains circuit drafts but starts new undo history. Guided H and
+H→H drafts are independent of free exploration; use **Open free exploration**
+in the guided Lab footer to restore the free circuit. Returning to a Lab requires
+new simulation/trace inspection before collecting evidence. Collected lesson
+evidence remains saved in this tab’s session.
+
+The verified lesson checkpoint is local commit `0694d35`. The shell is on
+`prebuild/app-shell`, intentionally uncommitted for review. See
+[the shell architecture and verification report](../docs/APP_SHELL.md).
 
 ## First guided lesson
 
@@ -12,7 +31,7 @@ report](../docs/LESSON_SUPERPOSITION.md) for architecture, numerical observation
 tests and persistence limits.
 
 An interactive React + TypeScript + Vite scientific workspace connected to the
-**real local FastAPI + Qiskit Aer simulation API**. The lab is at `/`; the original
+**real local FastAPI + Qiskit Aer simulation API**. The lab is at `/lab`; the original
 Circuit Test page remains independently accessible at `/circuit-test` with all
 of its original integration assertions preserved. No new dependencies were
 added for the editor. No AI, authentication, database, external fonts, unsupported
@@ -82,7 +101,7 @@ route same-origin `/api` requests to FastAPI; deployment is outside this milesto
 
 ## Using the Circuit Lab
 
-Open **http://127.0.0.1:5173/**. The toolbar contains templates, Undo, Redo,
+Open **http://127.0.0.1:5173/lab**. The toolbar contains templates, Undo, Redo,
 Reset, Run, and current/stale/error status. The left panel contains the gate
 palette and settings. The central grid is the circuit; selecting a gate opens
 its contextual inspector directly below the grid. The right panel contains real results.
@@ -319,7 +338,8 @@ frontend/
 │   ├── api/types.ts         # Backend-independent JSON contract
 │   ├── api/client.ts        # Fetch, response checks, timeout and error messages
 │   ├── templates.ts         # Circuit input templates only
-│   ├── App.tsx              # Lazy page selection: lab /, integration /circuit-test
+│   ├── App.tsx              # Lazy app routes; developer integration /circuit-test
+│   ├── app/                 # Shared shell, design system, dashboard and catalog
 │   ├── CircuitTest.tsx      # Preserved original integration page
 │   ├── lab/
 │   │   ├── CircuitLab.tsx   # Composition, selection, pending CX, run snapshots
