@@ -10,11 +10,16 @@ import StateExplorer from './StateExplorer';
 import BlochSphere from './BlochSphere';
 import { useStateTrace } from './useStateTrace';
 import { circuitKey, useCircuitEditor } from './useCircuitEditor';
+import LessonLabGuide from '../lesson/LessonLabGuide';
+import { lessonCircuit, updateLesson, type Experiment } from '../lesson/lessonState';
 import './lab.css';
 import './explorer.css';
 
 export default function CircuitLab() {
-  const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor();
+  const params = new URLSearchParams(window.location.search);
+  const experiment: Experiment | null = params.get('lesson') === 'superposition' && ['h', 'hh'].includes(params.get('experiment') ?? '') ? params.get('experiment') as Experiment : null;
+  const [initialRequest] = useState(() => experiment ? lessonCircuit(experiment) : undefined);
+  const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor(initialRequest);
   const trace = useStateTrace(request);
   const [exploring, setExploring] = useState(false);
   const [explorerPane, setExplorerPane] = useState<'joint' | 'qubit'>('joint');
@@ -36,6 +41,9 @@ export default function CircuitLab() {
   const traceStatus = trace.loading ? 'Tracing' : trace.error ? 'Error' : trace.stale || trace.cancelled ? 'Stale' : trace.step ? 'Current' : 'Idle';
 
   useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
+  useEffect(() => {
+    if (experiment) updateLesson((s) => ({ ...s, drafts: { ...s.drafts, [experiment]: request } }));
+  }, [experiment, request]);
   // Pending placement belongs to a particular circuit revision, never an undone one.
   useEffect(() => { setPendingCX(null); setPlacementError(null); }, [request]);
 
@@ -112,6 +120,7 @@ export default function CircuitLab() {
         <button className="lab-primary" onClick={() => { void run(); setExploring(false); setMobilePanel('results'); }} disabled={loading || shotsPending || pendingCX !== null} aria-label="Run Simulation">{loading ? 'Running…' : 'Run Simulation'} <span aria-hidden="true">▶</span></button>
       </div>
       <a className="lab-test-link" href="/circuit-test">Circuit Test ↗</a>
+      <a href="/learn/superposition">{experiment ? 'Return to lesson' : 'Learn: Superposition'}</a>
     </header>
     <nav className="lab-mobile-nav" aria-label="Workspace panels">
       {(['settings', 'circuit', 'results'] as const).map((panel) => <button key={panel} aria-pressed={mobilePanel === panel} data-active={mobilePanel === panel} onClick={() => { setMobilePanel(panel); if (panel !== 'circuit') setExploring(false); }}>{panel === 'settings' ? 'Gates & settings' : panel === 'circuit' ? 'Circuit' : 'Results'}</button>)}
@@ -124,6 +133,9 @@ export default function CircuitLab() {
           onDrag={setDragTool} />
       </aside>
       <section className="lab-workspace" ref={workspace}>
+        {experiment && <LessonLabGuide experiment={experiment} request={request} result={result} trace={trace} exploring={exploring}
+          busy={loading || trace.loading || shotsPending || pendingCX !== null} failed={error !== null}
+          onReset={() => { dispatch({ type: 'replace', request: { numQubits: 1, gates: [], shots: 1024, backend: 'qiskit', seedSimulator: 42 } }); chooseTool('h'); }} />}
         <div className="workspace-modes" aria-label="Workspace mode">
           <button aria-pressed={!exploring} onClick={() => setExploring(false)}>Circuit editor</button>
           <button aria-pressed={exploring} onClick={() => { setExploring(true); setSelectedId(null); }}>State Explorer</button>
@@ -151,7 +163,7 @@ export default function CircuitLab() {
         {exploring && <StateExplorer trace={trace} blocked={shotsPending || pendingCX !== null} pane={explorerPane} onPane={setExplorerPane} />}
       </section>
       <aside className="lab-results lab-panel">
-        {exploring && <><BlochSphere step={trace.step} /><button className="explorer-final-results" onClick={() => { setExploring(false); setMobilePanel('results'); }}>View final simulation results</button></>}
+        {exploring && <><BlochSphere step={trace.step} beginner={experiment !== null && request.numQubits === 1} /><button className="explorer-final-results" onClick={() => { setExploring(false); setMobilePanel('results'); }}>View final simulation results</button></>}
         <div hidden={exploring}><ResultsPanel request={request} result={result} stale={stale} loading={loading} error={error} /></div>
       </aside>
     </div>

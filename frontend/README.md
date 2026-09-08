@@ -1,5 +1,16 @@
 # Circuit Lab
 
+## First guided lesson
+
+Open **http://127.0.0.1:5173/learn/superposition** for **Superposition and the
+Hadamard Gate**, or follow “Learn: Superposition” in the Lab toolbar. Nine short
+sections introduce the ideas from scratch, ask for predictions, guide independent
+construction of H and H→H in the existing Lab, explain real Qiskit results, and
+finish with a deterministic five-question check. Progress is tab-session only,
+not saved to an account. See [the lesson implementation and verification
+report](../docs/LESSON_SUPERPOSITION.md) for architecture, numerical observations,
+tests and persistence limits.
+
 An interactive React + TypeScript + Vite scientific workspace connected to the
 **real local FastAPI + Qiskit Aer simulation API**. The lab is at `/`; the original
 Circuit Test page remains independently accessible at `/circuit-test` with all

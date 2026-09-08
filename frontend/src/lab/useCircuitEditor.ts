@@ -92,9 +92,9 @@ export function editorReducer(history: History, action: Edit): History {
   return { past: [...past, present].slice(-100), present: next, future: [], error: null };
 }
 
-export function useCircuitEditor() {
+export function useCircuitEditor(initialRequest?: SimulationRequest) {
   const [history, dispatch] = useReducer(editorReducer, undefined, () => ({
-    past: [], present: emptyCircuit(), future: [], error: null,
+    past: [], present: initialRequest ? structuredClone(initialRequest) : emptyCircuit(), future: [], error: null,
   }));
   return { request: history.present, error: history.error, dispatch, canUndo: history.past.length > 0, canRedo: history.future.length > 0 };
 }
