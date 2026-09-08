@@ -20,11 +20,17 @@ class ApiCORSMiddleware:
             allow_methods=["POST"],
             allow_headers=["Content-Type"],
         )
+        self.variational = CORSMiddleware(
+            app, allow_origins=allow_origins, allow_credentials=False,
+            allow_methods=["GET", "POST", "DELETE"], allow_headers=["Content-Type"],
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         # Adding a write endpoint must not grant POST preflights to health/docs.
         middleware = (
-            self.simulation
+            self.variational
+            if scope["type"] == "http" and (scope["path"] == "/api/variational" or scope["path"].startswith("/api/variational/"))
+            else self.simulation
             if scope["type"] == "http" and scope["path"] in {"/api/simulate", "/api/simulate/trace"}
             else self.read_only
         )

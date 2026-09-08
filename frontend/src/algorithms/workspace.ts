@@ -21,4 +21,8 @@ export function algorithmWorkspace(search: string) {
   }
   return definition ? { definition, workspaceKey: `algorithm:${key}`, returnHref: `/algorithms/${id}` } : null;
 }
-export type AlgorithmWorkspace = NonNullable<ReturnType<typeof algorithmWorkspace>>;
+export interface AlgorithmWorkspace {
+  definition: { circuit: AlgorithmDefinition['circuit'] };
+  workspaceKey: string;
+  returnHref: string;
+}

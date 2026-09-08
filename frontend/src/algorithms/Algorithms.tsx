@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Link, navigate } from '../app/navigation';
 import { ActionLink, Badge, PageHeading } from '../app/ui';
 import CircuitCanvas from '../lab/CircuitCanvas';
@@ -16,6 +17,7 @@ import '../lab/explorer.css';
 import './algorithms.css';
 
 const nothing = () => {};
+const Variational = lazy(() => import('../variational/Variational'));
 function prediction(id: AlgorithmId): Question {
   const options = id === 'deutsch-jozsa' ? ['All input bits will be 0', 'At least one input bit will be 1', 'I’m not sure yet']
     : ['25%', '50%', '100%', 'I’m not sure yet'];
@@ -81,15 +83,21 @@ function Experiment({ entry }: { entry: AlgorithmEntry }) {
 }
 
 export default function Algorithms({ id }: { id?: string }) {
+  if (id === 'vqe' || id === 'qaoa') return <Variational key={id} id={id} />;
+  return <CircuitAlgorithms id={id} />;
+}
+
+function CircuitAlgorithms({ id }: { id?: string }) {
   const { catalog, error, retry } = useAlgorithmCatalog();
-  if (id && id !== 'deutsch-jozsa' && id !== 'grover') return <main className="q-page"><PageHeading eyebrow="ALGORITHM EXPLORER" title="That algorithm is not in this collection.">Deutsch–Jozsa and Grover’s search are available in this milestone.</PageHeading><ActionLink href="/algorithms">Back to algorithms</ActionLink></main>;
+  if (id && id !== 'deutsch-jozsa' && id !== 'grover') return <main className="q-page"><PageHeading eyebrow="ALGORITHM EXPLORER" title="That algorithm is not in this collection.">Deutsch–Jozsa, Grover, VQE and QAOA are available.</PageHeading><ActionLink href="/algorithms">Back to algorithms</ActionLink></main>;
   if (id && catalog) return <Experiment entry={catalog.find(a => a.id === id)!} />;
-  return <main className="q-page algorithm-catalog"><PageHeading eyebrow="FROM FIRST PRINCIPLES TO REAL CIRCUITS" title="Algorithms, built on understanding.">Two ideas that changed computing. Choose a problem, predict an outcome, and follow what the quantum state actually does.</PageHeading>
+  return <main className="q-page algorithm-catalog"><PageHeading eyebrow="FROM FIRST PRINCIPLES TO REAL CIRCUITS" title="Algorithms, built on understanding.">From interference to hybrid optimization. Choose a problem, predict an outcome, and follow what the quantum state actually does.</PageHeading>
     {error ? <section className="algorithm-error" role="alert"><h2>Algorithms could not load</h2><p>{error}</p><button onClick={retry}>Retry loading algorithms</button></section> : !catalog ? <p role="status">Loading the algorithm catalog…</p> : <>
       <div className="algorithm-catalog-intro"><span>01 / UNDERSTAND</span><span>02 / EXPERIMENT</span><span>03 / INSPECT</span><p>Small enough to follow every gate.<br />Real enough to test your intuition.</p></div>
       <div className="algorithm-catalog-list">{catalog.map((entry, index) => <article key={entry.id} className="algorithm-catalog-entry"><div className="algorithm-catalog-art"><span className="algorithm-number">0{index + 1}</span><AlgorithmMotif id={entry.id} /><p>{entry.id === 'deutsch-jozsa' ? 'INFORMATION THROUGH INTERFERENCE' : 'SEARCH THROUGH AMPLIFICATION'}</p></div><div className="algorithm-catalog-copy"><div className="q-inline-meta"><Badge tone="success">Available</Badge><span>{entry.id === 'deutsch-jozsa' ? 'One oracle query · 2–3 total qubits' : 'One marked item · 1–2 qubits'}</span></div><h2>{entry.title}</h2><p>{entry.summary}</p><p>{entry.id === 'deutsch-jozsa' ? 'Is a hidden rule always the same, or does it split its answers evenly? Learn how a helper qubit and interference reveal the distinction.' : 'How can a sign change make a search succeed? Mark an item, apply the diffuser, and find out why knowing when to stop matters.'}</p><ActionLink href={`/algorithms/${entry.id}`}>Explore {entry.title}</ActionLink></div></article>)}</div>
+      <div className="algorithm-catalog-list">{(['vqe', 'qaoa'] as const).map((algorithm, index) => <article key={algorithm} className="algorithm-catalog-entry"><div className="algorithm-catalog-art"><span className="algorithm-number">0{index + 3}</span><p>{algorithm === 'vqe' ? 'ENERGY THROUGH VARIATION' : 'CUTS THROUGH OPTIMIZATION'}</p></div><div className="algorithm-catalog-copy"><div className="q-inline-meta"><Badge tone="success">Available</Badge><span>Real bounded hybrid optimization · Both simulators</span></div><h2>{algorithm.toUpperCase()}</h2><p>{algorithm === 'vqe' ? 'Tune an entangling two-spin circuit to lower its energy. Compare real state expectations and convergence against exact diagonalization.' : 'Divide a small graph into two groups. Tune cost and mixer layers, inspect real cut probabilities, and compare with classical enumeration.'}</p><ActionLink href={`/algorithms/${algorithm}`}>Explore {algorithm.toUpperCase()}</ActionLink></div></article>)}</div>
       <aside className="algorithm-catalog-foundations"><div><h2>New to qubits? You belong here.</h2><p>Each module introduces its own terms. The foundation lessons give you more time with measurement, superposition, phase, and entanglement.</p></div><ActionLink secondary href="/learn">Explore foundations</ActionLink></aside>
-      <footer className="q-page-footer"><span>Local ideal simulation · No AI key needed</span><span>QAOA & VQE are outside this collection</span></footer>
+      <footer className="q-page-footer"><span>Local ideal simulation · No AI key needed</span><span>Four executable algorithms · No quantum hardware</span></footer>
     </>}
   </main>;
 }

@@ -6,6 +6,7 @@ import { isFoundationId } from './lesson/foundations/content';
 import './app/design-system.css';
 import { TutorProvider } from './tutor/TutorProvider';
 import { algorithmWorkspace } from './algorithms/workspace';
+import { variationalWorkspace } from './variational/workspace';
 import { ActionLink } from './app/ui';
 
 const CircuitLab = lazy(() => import('./lab/CircuitLab'));
@@ -32,7 +33,7 @@ export default function App() {
   // This developer page keeps its original isolated styles and document navigation.
   if (path === '/circuit-test') return <Suspense fallback={fallback}><CircuitTest /></Suspense>;
   const experiment = workspaceExperiment(url.search);
-  const algorithm = (path === '/lab' || path === '/lab/states') ? algorithmWorkspace(url.search) : null;
+  const algorithm = (path === '/lab' || path === '/lab/states') ? algorithmWorkspace(url.search) ?? variationalWorkspace(url.search) : null;
   const lessonId = path.startsWith('/learn/') ? path.slice('/learn/'.length) : '';
   return <TutorProvider path={path}><AppShell path={path}><Suspense fallback={fallback}>
     {path === '/' || path === '/dashboard' ? <Dashboard />

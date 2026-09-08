@@ -1,0 +1,43 @@
+.variational-page { --q-border: var(--q-line); overflow-wrap: anywhere; }
+.variational-problem { padding: 2rem 0; }
+.variational-page .algorithm-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--q-line); border-radius: 12px; }
+.variational-page .algorithm-results-grid > div { min-width: 0; padding: 1.5rem; }
+.variational-page code { font-size: .94em; }
+.variational-loop { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--q-border); border: 1px solid var(--q-border); border-radius: 12px; overflow: hidden; margin: 2rem 0 1rem; }
+.variational-loop span { padding: 1rem; background: var(--q-surface); font-size: .85rem; }
+.variational-angles { display: grid; gap: .8rem; }
+.variational-angles input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--q-border); border-radius: 7px; padding: .65rem; background: var(--q-surface); color: inherit; font: inherit; }
+.variational-graph { padding: 1.5rem; border: 1px solid var(--q-border); border-radius: 12px; align-self: start; }
+.variational-graph svg { display: block; width: 100%; max-width: 440px; margin: auto; }
+.variational-graph line { stroke: #bac7cc; stroke-width: 4; }
+.variational-graph line.cut-edge { stroke: #127462; stroke-width: 6; }
+.variational-graph circle { fill: #e7eef1; stroke: #36576a; stroke-width: 2; }
+.variational-graph circle.group-one { fill: #36576a; }
+.variational-graph text { fill: #36576a; text-anchor: middle; font-size: 16px; }
+.variational-graph .group-one + .vertex-label { fill: white; }
+.variational-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.variational-metrics > div { display: flex; flex-direction: column; gap: .75rem; padding: 1.4rem; border: 1px solid var(--q-border); border-radius: 12px; }
+.variational-metrics strong { font-size: clamp(1.3rem, 2.5vw, 2rem); font-variant-numeric: tabular-nums; }
+.variational-metrics small { color: var(--q-muted); }
+.variational-convergence { margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--q-border); border-radius: 12px; }
+.variational-convergence svg { display: block; width: 100%; max-height: 330px; margin: 1rem 0; }
+.variational-convergence text { font-size: 14px; fill: #40525e; }
+.variational-trials, .variational-best { fill: none; stroke-linejoin: round; stroke-width: 2; }
+.variational-trials { stroke: #9dbac8; }
+.variational-best { stroke: #126858; stroke-width: 3; }
+.variational-reference { stroke: #876326; stroke-dasharray: 6 5; stroke-width: 2; }
+.variational-dot { fill: #126858; }
+.variational-legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .8rem; }
+.variational-table-scroll { overflow-x: auto; max-width: 100%; }
+.variational-table-scroll td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.variational-page .algorithm-details > label { display: grid; gap: .5rem; margin: 1rem 0; }
+@media (max-width: 700px) {
+  .variational-page .algorithm-results-grid { grid-template-columns: minmax(0, 1fr); }
+  .variational-page .algorithm-results-grid > div { padding: 1rem; }
+  .variational-loop { grid-template-columns: repeat(2, 1fr); }
+  .variational-metrics { grid-template-columns: 1fr; }
+  .variational-metrics > div { gap: .4rem; padding: 1rem; }
+  .variational-convergence, .variational-graph { padding: 1rem; }
+  .variational-convergence svg { min-height: 160px; }
+  .variational-convergence text { font-size: 26px; }
+}

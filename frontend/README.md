@@ -35,7 +35,7 @@ behavior are unchanged.
 Open **http://127.0.0.1:5173/** for the student dashboard. `/learn` is the
 foundations curriculum, `/progress` shows actual tab-session activity, `/lab`
 opens the existing Circuit Lab, and `/lab/states` opens its State Explorer.
-Algorithms offers Deutsch–Jozsa and Grover experiments; Challenges offers eight
+Algorithms offers Deutsch–Jozsa, Grover, VQE and QAOA experiments; Challenges offers eight
 server-graded tasks. The lesson and Lab use a
 compact global rail; on mobile, open the navigation drawer from the topbar.
 
@@ -46,8 +46,8 @@ in the guided Lab footer to restore the free circuit. Returning to a Lab require
 new simulation/trace inspection before collecting evidence. Collected lesson
 evidence remains saved in this tab’s session.
 
-The current extension is on `feat/pennylane-backend`, based on the verified
-integration checkpoint `a5eed03`. Circuit Lab includes Visual / Code modes, grouped gates, and radian angle
+Task 21 is on `feat/variational-algorithms`, based on the verified
+integration checkpoint `d1ad043`. Circuit Lab includes Visual / Code modes, grouped gates, and radian angle
 controls. Code Mode supports a documented OpenQASM 3 subset and a read-only
 Qiskit example; it does not execute arbitrary Python. See
 [the engine and code-mode contract](../docs/CIRCUIT_CODE.md),
@@ -69,6 +69,35 @@ survive reload in this tab; algorithm results and practice answers survive
 client navigation but require another run after reload. No live AI is required.
 See [the complete implementation and review report](../docs/ALGORITHM_EXPLORER.md).
 Use the local server instructions below; this task does not deploy the application.
+
+### Real VQE and QAOA
+
+`/algorithms/vqe` teaches a dimensionless two-spin energy problem; `/algorithms/qaoa`
+teaches MaxCut on an edge, path, triangle or weighted path. The flow is problem →
+classical intuition → parameterized circuit → prediction → real optimization →
+convergence and final-state inspection → explanation and practice check.
+
+Choose Qiskit (default) or PennyLane, starting seed, evaluation budget and final
+shots. QAOA also exposes graph and depth. Advanced controls expose finite initial
+angles in radians, iteration and wall-clock limits. The chart uses actual objective
+evaluations, not synthetic animation; the exact classical reference is clearly
+separate. A converged local optimizer is not a guarantee of global success.
+
+Client-generated job IDs exist before the start request. Changing settings or
+leaving the page requests real server cancellation; late start and polling replies
+cannot restore stale evidence. The cancel button waits for backend acknowledgement.
+If the connection is lost, the server still enforces the accepted job's deadline.
+Only one optimization is admitted per local server process. Busy, failure,
+cancellation and timeout states retain no misleading final result.
+
+Initial and optimized circuits open as **isolated editable Lab copies**, preserving
+unrelated drafts and navigation-local Undo/Redo. State Explorer and Bloch spheres
+use real final-circuit traces, including mixed reduced states. Settings and copies
+survive reload in this tab; variational results and practice answers require another
+run after leaving/reloading the module. No grading/progress or Tutor rules changed.
+
+No frontend packages or backend dependencies were added for Task 21. See
+[full mathematics, job contract and verification](../docs/VARIATIONAL_ALGORITHMS.md).
 
 ## Four guided foundations lessons
 

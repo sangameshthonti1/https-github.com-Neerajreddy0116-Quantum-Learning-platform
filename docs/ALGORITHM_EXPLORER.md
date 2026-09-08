@@ -1,5 +1,9 @@
 # Algorithm Explorer — implementation and review
 
+> Task 21 now adds VQE and QAOA through a compatible variational namespace and
+> two modules in this explorer. The exclusions below describe this older milestone.
+> See the [variational implementation and verification](VARIATIONAL_ALGORITHMS.md).
+
 > This is the historical Algorithm Explorer milestone report, integrated at
 > `a5eed03`. The local review processes/branch below describe that checkpoint,
 > not the current workspace. The [PennyLane extension](PENNYLANE_BACKEND.md)

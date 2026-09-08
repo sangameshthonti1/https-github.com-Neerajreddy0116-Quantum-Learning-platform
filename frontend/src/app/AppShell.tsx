@@ -33,7 +33,7 @@ export default function AppShell({ path, children }: { path: string; children: R
   const menuButton = useRef<HTMLButtonElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const lessonId = path.slice('/learn/'.length);
-  const title = path === '/algorithms/deutsch-jozsa' ? 'Deutsch–Jozsa' : path === '/algorithms/grover' ? 'Grover’s search' : path.startsWith('/challenges/') ? 'Challenge workspace' : path.startsWith('/learn/') && isFoundationId(lessonId) ? foundations[lessonId].title : path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
+  const title = path === '/algorithms/vqe' ? 'VQE' : path === '/algorithms/qaoa' ? 'QAOA' : path === '/algorithms/deutsch-jozsa' ? 'Deutsch–Jozsa' : path === '/algorithms/grover' ? 'Grover’s search' : path.startsWith('/challenges/') ? 'Challenge workspace' : path.startsWith('/learn/') && isFoundationId(lessonId) ? foundations[lessonId].title : path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
   useEffect(() => {
     document.title = `${title} · Quantum Learning`;
     setExpanded(false);

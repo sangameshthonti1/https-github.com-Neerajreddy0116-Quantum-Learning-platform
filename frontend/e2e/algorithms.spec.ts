@@ -49,8 +49,8 @@ async function noOverflow(page: Page) { expect(await page.evaluate(() => documen
 
 test('catalog, navigation, direct routes, and unavailable algorithms', async ({ page }) => {
   await page.goto('/algorithms');
-  await expect(page.getByRole('article')).toHaveCount(2);
-  await expect(page.getByText('Available', { exact: true })).toHaveCount(2);
+  await expect(page.getByRole('article')).toHaveCount(4);
+  await expect(page.getByText('Available', { exact: true })).toHaveCount(4);
   await expect(page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Algorithms', exact: true })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('link', { name: 'Explore Deutsch–Jozsa', exact: true }).click();
   await expect(page).toHaveURL('/algorithms/deutsch-jozsa');
@@ -58,10 +58,10 @@ test('catalog, navigation, direct routes, and unavailable algorithms', async ({ 
   await page.getByRole('link', { name: 'Explore Grover’s search', exact: true }).click();
   await expect(page).toHaveURL('/algorithms/grover');
   await expect(page).toHaveTitle('Grover’s search · Quantum Learning');
-  await page.goto('/algorithms/qaoa');
+  await page.goto('/algorithms/unavailable');
   await expect(page.getByRole('heading', { name: 'That algorithm is not in this collection.' })).toBeVisible();
   await page.getByRole('link', { name: 'Back to algorithms' }).click();
-  await expect(page.getByRole('article')).toHaveCount(2);
+  await expect(page.getByRole('article')).toHaveCount(4);
   expect(await page.evaluate(() => sessionStorage.getItem('qlp-superposition-v1'))).toBeNull();
 });
 
@@ -292,7 +292,7 @@ test('corrupted numerical interpretations and snapshot mismatches never render a
 
 for (const width of [320, 390, 768]) test(`desktop/mobile accessibility and expanded details at ${width}px`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/algorithms'); await expect(page.getByRole('article')).toHaveCount(2); await noOverflow(page);
+  await page.goto('/algorithms'); await expect(page.getByRole('article')).toHaveCount(4); await noOverflow(page);
   await page.getByRole('link', { name: 'Explore Grover’s search', exact: true }).focus(); await page.keyboard.press('Enter');
   await page.getByRole('link', { name: 'Build & predict', exact: true }).click();
   await page.getByRole('radio', { name: 'I’m not sure yet' }).focus(); await page.keyboard.press('Space');
@@ -314,6 +314,6 @@ test('actual backend outage removes execution results and catalog retry recovers
     await page.getByRole('link', { name: 'All algorithms', exact: false }).click();
     await expect(page.getByRole('alert')).toContainText('Algorithms could not load');
   } finally { await startBackend(); }
-  await button(page, 'Retry loading algorithms').click(); await expect(page.getByRole('article')).toHaveCount(2);
+  await button(page, 'Retry loading algorithms').click(); await expect(page.getByRole('article')).toHaveCount(4);
   await page.getByRole('link', { name: 'Explore Grover’s search', exact: true }).click(); await run(page);
 });

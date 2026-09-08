@@ -396,8 +396,10 @@ CORS is not authentication and does not prevent execution by non-browser clients
 The 3-qubit, 256-gate, and 8192-shot bounds limit individual jobs. Synchronous
 simulation handlers run in FastAPI's worker pool, outside the async event loop;
 each Aer instance is limited to one parallel execution thread. There is no
-job queue, hard job timeout, aggregate request/body limit, or rate limiter in
-this local milestone. Those protections are required before public exposure.
+job queue, hard job timeout, aggregate request/body limit, or rate limiter for
+these ordinary simulation routes. Those protections are required before public exposure.
+The separate Task 21 variational namespace has a supervised, bounded job lifecycle,
+described below; it does not alter ordinary simulation semantics.
 
 ## Official references used
 
@@ -439,3 +441,26 @@ grading and AI Tutor grounding remain on their authoritative Qiskit path.
 
 See [PennyLane implementation and verification](PENNYLANE_BACKEND.md) for
 dependency choices, parity evidence, browser checks and remaining limitations.
+
+## Task 21: variational optimization
+
+`GET /api/variational` returns trusted problem definitions and resource limits.
+`POST /api/variational/build` returns a bound canonical circuit preview, parameter
+ordering, Hamiltonian/graph and exact classical reference without running an optimizer.
+`POST /api/variational/jobs/{uuid}` accepts the same request and returns HTTP 202
+with a job snapshot. `GET` polls recorded real evaluations; `DELETE` cancels and
+waits for subprocess cleanup. The existing `/api/algorithms` catalog/build/run
+contract remains Deutsch–Jozsa/Grover-only for backward compatibility; the UI
+combines both namespaces in its four-module explorer.
+
+Requests are discriminated by `algorithm: "vqe" | "qaoa"`. Both select
+`backend: "qiskit" | "pennylane"`, defaulting to Qiskit, with no fallback.
+Public input selects only trusted problems; arbitrary Hamiltonians, graphs,
+Python, optimizer methods and canonical circuits are not accepted at these routes.
+Only this namespace adds GET/POST/DELETE CORS methods for allowed origins.
+
+See [complete variational requests, responses, errors, lifecycle and numerical
+conventions](VARIATIONAL_ALGORITHMS.md#api-contract). The result embeds the
+unchanged simulation/trace schemas above, plus actual objective history and an
+independent exact reference. Counts are sampled only for the final best circuit;
+objective values use exact complex state expectations.

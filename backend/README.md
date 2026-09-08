@@ -13,6 +13,13 @@ Algorithm Explorer now provides real Deutsch–Jozsa and Grover circuits through
 `GET /api/algorithms`, `POST /api/algorithms/build`, and `POST /api/algorithms/run`.
 See [supported variants, contracts, and verification](../docs/ALGORITHM_EXPLORER.md).
 
+Task 21 adds executable **VQE** (an educational two-spin Hamiltonian) and
+**QAOA MaxCut** (four trusted 2–3-vertex graphs, depth 1–2). Both use the existing
+simulator adapters and the already-pinned **SciPy 1.18.1** Powell optimizer;
+there are **no dependency changes**. Exact objectives use complex simulated
+amplitudes, not measurement counts. Final counts are separately sampled.
+See [variational mathematics, API, limits and verification](../docs/VARIATIONAL_ALGORITHMS.md).
+
 ## Python and isolation
 
 Use **Python 3.13**; this foundation was verified with **3.13.7** on macOS Apple Silicon.
@@ -77,6 +84,14 @@ loopback only. `--reload` is for local development, not production. Changes to
 `.env` require a server restart. If port 8000 is occupied, identify its owner;
 do not kill unrelated processes.
 
+For variational jobs, run **one ASGI worker**. The local, memory-only manager
+admits one owned optimization subprocess at a time; there is no queue. It
+enforces a 1–30 second wall deadline including startup, and actually terminates
+and reaps the child on cancellation, timeout or server shutdown. Results expire
+after 10 minutes, with eight retained at most. This is a loopback educational
+service, not a public multi-user job system. Ordinary simulation routes retain
+their existing behavior; their requests do not use this job manager.
+
 In a second terminal:
 
 ```sh
@@ -94,6 +109,11 @@ Expected HTTP status: **200**, with exactly:
 | `GET /api/health` | Process liveness; no external dependencies are probed |
 | `POST /api/simulate` | Real ideal-state simulation and sampled terminal measurements |
 | `POST /api/simulate/trace` | Initial and per-gate states, probabilities, reduced density matrices and Bloch vectors |
+| `GET /api/variational` | Trusted VQE/MaxCut problems, simulator names and optimization limits |
+| `POST /api/variational/build` | Validated, bound initial circuit preview and independent exact reference |
+| `POST /api/variational/jobs/{uuid}` | Start one bounded optimization; idempotent same-ID/same-request retry |
+| `GET /api/variational/jobs/{uuid}` | Actual evaluation history, status and final result when completed |
+| `DELETE /api/variational/jobs/{uuid}` | Cancel and wait for worker cleanup; terminal jobs stay terminal |
 | `GET /` | HTTP 307 redirect to `/docs` |
 | `GET /docs` | Automatic Swagger UI |
 | `GET /openapi.json` | Generated OpenAPI schema |

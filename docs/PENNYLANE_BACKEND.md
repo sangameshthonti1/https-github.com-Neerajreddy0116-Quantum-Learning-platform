@@ -1,5 +1,9 @@
 # PennyLane second simulator — implementation and verification
 
+> This historical report remains the simulator baseline. Task 21 now reuses both
+> adapters for real VQE/QAOA without changing their implementations or dependency
+> pins. See [variational algorithms](VARIATIONAL_ALGORITHMS.md).
+
 Review target: `feat/pennylane-backend`, based on integration checkpoint
 `a5eed0350ec412d96ebd3d628e4304e8553255f5`. The initial working tree was clean.
 After the connection interruption, the existing edits were inspected and
