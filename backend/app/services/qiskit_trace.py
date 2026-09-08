@@ -4,7 +4,6 @@ from time import perf_counter
 
 import numpy as np
 import qiskit
-from qiskit.circuit.library import CXGate, HGate, XGate, ZGate
 from qiskit.quantum_info import Statevector, partial_trace
 
 from app.schemas.simulation import ComplexAmplitude, Gate, SimulationRequest
@@ -16,9 +15,9 @@ from app.schemas.trace import (
     TraceStep,
 )
 from app.services.qiskit_simulator import SimulationExecutionError
+from app.services.quantum_gates import operation
 
 TOLERANCE = 1e-12
-OPERATIONS = {"h": HGate, "x": XGate, "z": ZGate, "cx": CXGate}
 
 
 def _amplitude(value: complex) -> ComplexAmplitude:
@@ -69,10 +68,9 @@ def trace_circuit(request: SimulationRequest) -> TraceResponse:
         state = Statevector.from_int(0, 2**request.num_qubits)
         steps = [_snapshot(state, 0, None)]
         for index, gate in enumerate(request.gates, start=1):
-            # CX's Qiskit argument order is control, target. Request validation
+            # Qiskit's argument order is controls, then targets. Request validation
             # already guarantees supported gates, distinct qubits and all bounds.
-            operation = OPERATIONS[gate.type]()
-            state = state.evolve(operation, qargs=gate.controls + gate.targets)
+            state = state.evolve(operation(gate), qargs=gate.controls + gate.targets)
             steps.append(_snapshot(state, index, gate))
 
         return TraceResponse(

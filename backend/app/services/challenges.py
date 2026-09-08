@@ -40,7 +40,8 @@ def compare(actual, target, probabilities, tolerance):
 
 
 def same_operation(a, b):
-    return a.type == b.type and a.targets == b.targets and a.controls == b.controls
+    return (a.type == b.type and a.targets == b.targets and a.controls == b.controls
+            and getattr(a, "params", []) == getattr(b, "params", []))
 
 
 def grade_submission(request: GradeRequest) -> GradeResponse:

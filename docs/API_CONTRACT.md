@@ -12,6 +12,14 @@ milestone. Do not expose this unauthenticated service to the public internet.
 - `GET /`: HTTP 307 redirect to `/docs`.
 - `GET /docs` and `GET /openapi.json`: HTTP 200.
 
+## POST /api/circuits/parse
+
+Validates a bounded OpenQASM 3 subset and returns a canonical circuit without
+executing it. Request/response/error envelopes, exact grammar, resource bounds,
+and bidirectional-editor behavior are documented in
+[CIRCUIT_CODE.md](CIRCUIT_CODE.md#conversion-api). Existing simulation and trace
+endpoints continue to accept only circuit JSON.
+
 ## POST /api/simulate
 
 Send `Content-Type: application/json`. Runs an ideal, noiseless local CPU
@@ -47,31 +55,37 @@ circuit, shot count, pinned engine versions, and simulator configuration.
 Reproducibility across different library releases/platforms is not guaranteed.
 The seed affects sampling, not ideal probabilities.
 
-All numeric request fields require actual JSON integers: strings, booleans,
+Qubit indices/counts, shots and seeds require actual JSON integers: strings, booleans,
 and floating-point values (including `1.0`) are rejected. Unknown fields are
 rejected, not silently ignored. Field names use the camelCase spelling above.
 
 ### Gate objects
 
-All four fields are required on every gate:
+The four base fields are required on every gate; `params` is conditional:
 
 | Field | Contract |
 | --- | --- |
 | `id` | String of 1–64 characters containing a non-whitespace character; unique within the request |
-| `type` | Lowercase `"h"`, `"x"`, `"z"`, or `"cx"` |
-| `targets` | Array containing exactly one qubit index |
-| `controls` | Empty for H/X/Z; exactly one qubit index for CX |
+| `type` | Lowercase `h`, `x`, `y`, `z`, `s`, `sdg`, `t`, `tdg`, `rx`, `ry`, `rz`, `p`, `cx`, `cz`, `swap`, or `ccx` |
+| `targets` | Exactly one index except SWAP, which has two ordered target indices |
+| `controls` | One index for CX/CZ, two for CCX, empty for all other gates |
+| `params` | Required only for RX/RY/RZ/P: exactly one finite JSON number in radians; forbidden on fixed gates |
 
-Indices must be integers in `0..numQubits-1`. Duplicate entries are invalid;
-for this milestone the one-element arity limits also rule them out. Controls
+Indices must be integers in `0..numQubits-1`. Duplicate entries are invalid. Controls
 and targets must be disjoint. `cx` means control `controls[0]`, target
 `targets[0]`, with the X action conditioned on the control being 1.
 
-Rotation gates, parameters, reset, measurement instructions, barriers,
+Angles accept integer or floating-point JSON numbers, never strings, booleans,
+null or nonfinite values. Native global phase is preserved. P(θ) equals
+exp(iθ/2) RZ(θ); this factor changes all amplitudes equally and has no observable
+effect. Angles are not normalized modulo 2π. Old gate objects are unchanged and
+have no `params` field, including when echoed by tracing.
+
+Reset, measurement instructions, barriers,
 classical conditions, initial-state overrides, noise models, and additional
 backends are **not supported**. They produce validation errors. The gate
-schema uses a tagged union by `type`, so future parameterized gate variants can
-be added with explicit schemas and real implementations. The backend identifier
+schema uses a tagged union by `type`, including explicit parameterized variants.
+RZZ is deferred and rejected. The backend identifier
 and backend-independent response similarly allow deliberate future adapters;
 there is no fallback to a different simulator.
 
@@ -194,10 +208,11 @@ Validation is performed before invoking the simulator.
 ## POST /api/simulate/trace
 
 Returns the initial state and the state **after every input gate**, in request
-array order. Uses Qiskit's `Statevector.evolve` with its native H/X/Z/CX
+array order. Uses Qiskit's `Statevector.evolve` with native operations for all 16
 instructions and `partial_trace` for reduced states. There is no sampled-count
 reconstruction, example-state lookup, circuit optimization, or gate fusion.
-The existing `POST /api/simulate` request and response contracts are unchanged.
+The existing `POST /api/simulate` response contract is unchanged. Both execution
+paths use one shared native-operation mapping and pass controls before targets.
 
 ### Request and measurement semantics
 

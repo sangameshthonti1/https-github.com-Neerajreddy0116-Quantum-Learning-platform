@@ -8,6 +8,7 @@ import qiskit_aer
 from qiskit import QuantumCircuit, transpile
 from qiskit_aer import AerSimulator
 from qiskit_aer.library import SaveStatevector
+from app.services.quantum_gates import operation
 
 from app.schemas.simulation import (
     ComplexAmplitude,
@@ -30,17 +31,7 @@ def simulate_circuit(request: SimulationRequest) -> SimulationResponse:
     try:
         circuit = QuantumCircuit(request.num_qubits, request.num_qubits)
         for gate in request.gates:
-            match gate.type:
-                case "h":
-                    circuit.h(gate.targets[0])
-                case "x":
-                    circuit.x(gate.targets[0])
-                case "z":
-                    circuit.z(gate.targets[0])
-                case "cx":
-                    circuit.cx(gate.controls[0], gate.targets[0])
-                case _:
-                    raise SimulationExecutionError("Unsupported operation reached engine")
+            circuit.append(operation(gate), gate.controls + gate.targets)
 
         circuit_depth = circuit.depth()
         # Save BEFORE any measurement; a post-measurement trajectory is not the

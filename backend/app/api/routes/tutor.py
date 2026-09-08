@@ -38,7 +38,7 @@ class TutorRoute(APIRoute):
                 # No echoed input or gate IDs, including in validator messages.
                 issues = exc.errors()
                 circuit_issue = any("circuit" in item["loc"] for item in issues)
-                message = "This circuit is not supported. Use 1–3 qubits, up to 256 H/X/Z/CX gates, unique gate IDs, and in-range targets. CX needs different control and target qubits; shots must be 1–8192."
+                message = "This circuit is not supported. Use 1–3 qubits, up to 256 supported gates, unique gate IDs, and distinct in-range controls and targets. RX/RY/RZ/P need one finite angle in radians; shots must be 1–8192."
                 if not circuit_issue:
                     message = "Check your tutor request: question 1–2000 characters, up to 8 recent messages (8000 characters total), a known lesson, and a step within the current circuit. Only question, mode, lessonId, circuit, selectedStep and history are accepted."
                 else:
@@ -46,7 +46,7 @@ class TutorRoute(APIRoute):
                     loc = first["loc"]
                     if first["type"] == "union_tag_invalid":
                         position = next((part + 1 for part in loc if isinstance(part, int)), None)
-                        message = f"Gate {position or ''} is unsupported. This Lab can use H, X, Z and CX. Replace that gate with a supported operation; the circuit was not run."
+                        message = f"Gate {position or ''} is unsupported. This Lab supports H/X/Y/Z, S/SDG/T/TDG, RX/RY/RZ/P, CX/CZ/SWAP/CCX. Replace that gate with a supported operation; the circuit was not run."
                     elif "numQubits" in loc:
                         message = "This Lab supports 1–3 qubits. Reduce the qubit count and keep every gate on an available wire; the circuit was not run."
                     elif "cx" in loc:

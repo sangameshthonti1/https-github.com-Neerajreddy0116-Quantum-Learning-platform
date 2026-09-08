@@ -1,11 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Gate, SimulationRequest, TraceStep } from '../api/types';
+import { angleText, arity, gateDefinitions } from './gates';
+
+export interface PendingPlacement { type: Gate['type']; qubits: number[]; index: number }
 
 export interface CircuitCanvasProps {
   request: SimulationRequest;
   selectedId: string | null;
   tool: Gate['type'];
-  pendingCX: { control: number; index: number } | null;
+  pending: PendingPlacement | null;
   onCell: (qubit: number, index: number) => void;
   onSelect: (id: string) => void;
   onCancel: () => void;
@@ -17,7 +20,7 @@ export interface CircuitCanvasProps {
 }
 
 export default function CircuitCanvas({
-  request, selectedId, tool, pendingCX, onCell, onSelect, onCancel, onDeselect, dragTool, onDrop, traceStep, emptyHint,
+  request, selectedId, tool, pending, onCell, onSelect, onCancel, onDeselect, dragTool, onDrop, traceStep, emptyHint,
 }: CircuitCanvasProps) {
   const instructionsId = useId();
   const [dropCell, setDropCell] = useState<string | null>(null);
@@ -41,24 +44,24 @@ export default function CircuitCanvas({
 
       <p id={instructionsId} className="circuit-instructions">
         {traceStep ? `Trace step ${traceStep.index} · ${traceStep.gate ? `after ${traceStep.gate.type.toUpperCase()}` : 'initial all-zero state, before any gate'}. Click a gate to edit the circuit.` : selectedId ? 'Edit the selected gate below, or choose a palette tool to place gates.'
-          : tool === 'cx' ? 'Choose the control wire, then a different target at the same step.'
+          : arity(tool) > 1 ? `${tool === 'swap' ? 'Choose two different wires' : tool === 'ccx' ? 'Choose two control wires, then the target' : 'Choose the control wire, then a different target'} at the same step.`
           : 'Click a + cell to place a gate. Click an existing gate to edit it.'}
       </p>
 
       <div className="circuit-mode" data-editing={Boolean(selectedId)}>
         <span className="circuit-tool-badge">{traceStep ? 'TRACE' : selectedId ? 'EDIT' : tool.toUpperCase()}</span>
-        <span>{traceStep ? `Step ${traceStep.index} · before measurement` : selectedId ? 'Gate selected' : pendingCX ? 'Choose a CX target' : `${tool.toUpperCase()} placement tool`}</span>
+        <span>{traceStep ? `Step ${traceStep.index} · before measurement` : selectedId ? 'Gate selected' : pending ? `Choose ${pending.type.toUpperCase()} wire ${pending.qubits.length + 1} of ${arity(pending.type)}` : `${tool.toUpperCase()} placement tool`}</span>
         {selectedId && <button onClick={onDeselect}>Deselect</button>}
         <span className="circuit-direction">Execution left to right <span aria-hidden="true">→</span></span>
       </div>
 
-      {pendingCX && (
+      {pending && (
         <div className="lab-notice circuit-pending" role="status">
           <span>
-            Control: <strong>q{pendingCX.control}</strong>. Choose a different wire
-            at <strong>step {pendingCX.index + 1}</strong> for the CX target.
+            {pending.type === 'swap' ? 'First wire:' : 'Control:'} <strong>{pending.qubits.map((q) => `q${q}`).join(', ')}</strong>. Choose a different wire
+            at <strong>step {pending.index + 1}</strong> for {pending.type.toUpperCase()}.
           </span>
-          <button type="button" onClick={onCancel}>Cancel CX</button>
+          <button type="button" onClick={onCancel}>Cancel {pending.type.toUpperCase()}</button>
         </div>
       )}
 
@@ -70,7 +73,7 @@ export default function CircuitCanvas({
         aria-describedby={instructionsId}
         tabIndex={0}
         onKeyDown={(event) => {
-          if (event.key === 'Escape' && pendingCX) {
+          if (event.key === 'Escape' && pending) {
             event.preventDefault();
             onCancel();
           }
@@ -88,7 +91,8 @@ export default function CircuitCanvas({
           {Array.from({ length: request.gates.length + 1 }, (_, index) => {
             const gate = request.gates[index];
             const selected = gate !== undefined && gate.id === selectedId;
-            const pendingColumn = pendingCX?.index === index;
+            const pendingColumn = pending?.index === index;
+            const wires = gate ? [...gate.controls, ...gate.targets] : [];
             return (
               <div
                 key={gate?.id ?? 'append'}
@@ -102,25 +106,25 @@ export default function CircuitCanvas({
                   {index + 1}
                   {!gate && <span className="circuit-append-label">add</span>}
                 </div>
-                {gate?.type === 'cx' && (
+                {gate && wires.length > 1 && (
                   <span
                     className="circuit-cx-connector"
-                    data-testid={`cx-connector-${gate.id}`}
+                    data-testid={`${gate.type}-connector-${gate.id}`}
                     aria-hidden="true"
                     style={{
-                      top: `calc(var(--circuit-step-height) + ( ${Math.min(gate.controls[0], gate.targets[0])} + 0.5 ) * var(--circuit-row-height))`,
-                      height: `calc(${Math.abs(gate.controls[0] - gate.targets[0])} * var(--circuit-row-height))`,
+                      top: `calc(var(--circuit-step-height) + ( ${Math.min(...wires)} + 0.5 ) * var(--circuit-row-height))`,
+                      height: `calc(${Math.max(...wires) - Math.min(...wires)} * var(--circuit-row-height))`,
                     }}
                   />
                 )}
                 {qubits.map((qubit) => {
-                  const isControl = gate?.type === 'cx' && gate.controls[0] === qubit;
-                  const isTarget = gate?.targets[0] === qubit;
+                  const isControl = gate && (gate.controls as number[]).includes(qubit);
+                  const isTarget = gate && (gate.targets as number[]).includes(qubit);
                   const occupied = gate !== undefined && (isControl || isTarget);
-                  const previewControl = pendingColumn && pendingCX?.control === qubit;
+                  const previewControl = pendingColumn && pending?.qubits.includes(qubit);
                   const label = occupied
-                    ? gate.type === 'cx'
-                      ? `Select CX ${isControl ? 'control' : 'target'} q${qubit} at step ${index + 1}`
+                    ? wires.length > 1
+                      ? `Select ${gate.type.toUpperCase()} ${isControl ? 'control' : 'target'} q${qubit} at step ${index + 1}`
                       : `Select ${gate.type.toUpperCase()} gate at step ${index + 1}`
                     : `Place gate on q${qubit} at step ${index + 1}`;
                   return (
@@ -143,17 +147,18 @@ export default function CircuitCanvas({
                       }}>
                       <button
                         type="button"
-                        className={`circuit-cell-button ${occupied ? 'circuit-gate' : 'circuit-empty-cell'}${isControl ? ' circuit-control' : ''}${isTarget && gate?.type === 'cx' ? ' circuit-target' : ''}`}
+                        className={`circuit-cell-button ${occupied ? 'circuit-gate' : 'circuit-empty-cell'}${isControl ? ' circuit-control' : ''}${isTarget && (gate?.type === 'cx' || gate?.type === 'ccx') ? ' circuit-target' : ''}`}
                         aria-label={label}
                         aria-pressed={occupied ? selected : undefined}
-                        title={label}
+                        title={occupied ? `${label}. ${gateDefinitions[gate.type].description}${gate.params ? ` Angle ${angleText(gate.params[0])} radians.` : ''}` : label}
                         onClick={() => occupied ? onSelect(gate.id) : onCell(qubit, index)}
                       >
                         <span aria-hidden="true">
-                          {occupied ? isControl ? '●' : gate.type === 'cx' ? '⊕' : gate.type.toUpperCase() : previewControl ? '●' : '+'}
+                          {occupied ? isControl ? '●' : gate.type === 'cx' || gate.type === 'ccx' ? '⊕' : gate.type === 'swap' ? '×' : gate.type === 'cz' ? 'Z' : gateDefinitions[gate.type].label : previewControl ? '●' : '+'}
                         </span>
                       </button>
-                      {previewControl && <span className="circuit-preview-label">control</span>}
+                      {occupied && gate.params && <span className="circuit-angle" title={`${gate.params[0]} radians`}>{angleText(gate.params[0]).replaceAll('pi', 'π')}</span>}
+                      {previewControl && <span className="circuit-preview-label">{pending?.type === 'swap' ? 'wire' : 'control'}</span>}
                     </div>
                   );
                 })}

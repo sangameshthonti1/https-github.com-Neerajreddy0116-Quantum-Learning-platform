@@ -9,6 +9,7 @@ QubitIndex = Annotated[StrictInt, Field(ge=0)]
 QubitCount = Annotated[StrictInt, Field(ge=1, le=3)]
 ShotCount = Annotated[StrictInt, Field(ge=1, le=8192)]
 SimulatorSeed = Annotated[StrictInt, Field(ge=0, le=4294967295)]
+Angle = Annotated[float, Field(strict=True, allow_inf_nan=False)]
 
 
 class RequestModel(BaseModel):
@@ -19,9 +20,16 @@ class GateBase(RequestModel):
     id: str = Field(min_length=1, max_length=64, pattern=r"\S")
     targets: list[QubitIndex] = Field(min_length=1, max_length=1)
 
+    @model_validator(mode="after")
+    def distinct_qubits(self) -> Self:
+        qubits = self.targets + self.controls
+        if len(set(qubits)) != len(qubits):
+            raise ValueError(f"Gate {self.id!r}: controls and targets must be distinct and must not overlap")
+        return self
+
 
 class SingleQubitGate(GateBase):
-    type: Literal["h", "x", "z"]
+    type: Literal["h", "x", "y", "z", "s", "sdg", "t", "tdg"]
     controls: list[QubitIndex] = Field(max_length=0)
 
 
@@ -29,14 +37,35 @@ class ControlledXGate(GateBase):
     type: Literal["cx"]
     controls: list[QubitIndex] = Field(min_length=1, max_length=1)
 
-    @model_validator(mode="after")
-    def disjoint_qubits(self) -> Self:
-        if set(self.targets) & set(self.controls):
-            raise ValueError(f"Gate {self.id!r}: controls and targets must not overlap")
-        return self
+
+class RotationGate(GateBase):
+    type: Literal["rx", "ry", "rz", "p"]
+    controls: list[QubitIndex] = Field(max_length=0)
+    # Actual JSON numbers only, in radians. Never reduce modulo 2*pi: doing
+    # so would erase the native global phase of spinor rotations.
+    params: list[Angle] = Field(min_length=1, max_length=1)
 
 
-Gate = Annotated[SingleQubitGate | ControlledXGate, Field(discriminator="type")]
+class ControlledZGate(GateBase):
+    type: Literal["cz"]
+    controls: list[QubitIndex] = Field(min_length=1, max_length=1)
+
+
+class SwapGate(GateBase):
+    type: Literal["swap"]
+    targets: list[QubitIndex] = Field(min_length=2, max_length=2)
+    controls: list[QubitIndex] = Field(max_length=0)
+
+
+class ToffoliGate(GateBase):
+    type: Literal["ccx"]
+    controls: list[QubitIndex] = Field(min_length=2, max_length=2)
+
+
+Gate = Annotated[
+    SingleQubitGate | ControlledXGate | RotationGate | ControlledZGate | SwapGate | ToffoliGate,
+    Field(discriminator="type"),
+]
 
 
 class SimulationRequest(RequestModel):

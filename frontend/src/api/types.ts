@@ -1,7 +1,10 @@
 /** JSON contract: docs/API_CONTRACT.md. No Qiskit-specific objects. */
 export type Gate =
-  | { id: string; type: 'h' | 'x' | 'z'; targets: [number]; controls: [] }
-  | { id: string; type: 'cx'; targets: [number]; controls: [number] };
+  | { id: string; type: 'h' | 'x' | 'y' | 'z' | 's' | 'sdg' | 't' | 'tdg'; targets: [number]; controls: []; params?: never }
+  | { id: string; type: 'rx' | 'ry' | 'rz' | 'p'; targets: [number]; controls: []; params: [number] }
+  | { id: string; type: 'cx' | 'cz'; targets: [number]; controls: [number]; params?: never }
+  | { id: string; type: 'swap'; targets: [number, number]; controls: []; params?: never }
+  | { id: string; type: 'ccx'; targets: [number]; controls: [number, number]; params?: never };
 
 export interface SimulationRequest {
   numQubits: 1 | 2 | 3;

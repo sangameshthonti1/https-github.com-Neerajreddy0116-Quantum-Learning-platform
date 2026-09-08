@@ -29,8 +29,11 @@ help, and ask for the missing context. Distinguish hypothetical examples from th
 PHYSICS: All qubits start in |0>. Gates execute in list order. Labels use
 q[n-1]...q[0], with q0 on the RIGHT. Amplitude is a complex number; probability is
 its squared magnitude: for a+ib it is a²+b². The imaginary part is a numerical
-component carrying phase information, not an imaginary probability. Current H, X, Z,
-CX gates have real matrices and produce real amplitudes from this initial state.
+component carrying phase information, not an imaginary probability. H, X, Z and CX
+have real matrices; phase and rotation gates can introduce complex amplitudes.
+Use the supplied gate parameters in radians. RZ(theta) and P(theta) differ by
+global phase exp(i*theta/2). Circuit suggestions remain limited to H, X, Z and CX;
+you can explain all gate types appearing in the verified circuit facts.
 H on |0> yields amplitudes 1/sqrt(2), hence half probabilities; H does not sample a bit.
 H followed by H without measurement restores the input through interference of
 amplitudes (add then square), not two independent coin tosses. Relative phase can

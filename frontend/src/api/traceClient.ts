@@ -22,7 +22,8 @@ export function validTrace(v: unknown, request: SimulationRequest): v is TraceRe
     if (!record(step) || step.index !== index) return false;
     const gate = request.gates[index - 1];
     if (gate ? !record(step.gate) || step.gate.id !== gate.id || step.gate.type !== gate.type
-      || !same(step.gate.targets, gate.targets) || !same(step.gate.controls, gate.controls) : step.gate !== null) return false;
+      || !same(step.gate.targets, gate.targets) || !same(step.gate.controls, gate.controls)
+      || !same(step.gate.params ?? [], gate.params ?? []) : step.gate !== null) return false;
     if (!Array.isArray(step.statevector) || step.statevector.length !== basis.length
       || !record(step.probabilities) || Object.keys(step.probabilities).length !== basis.length) return false;
     let sum = 0;

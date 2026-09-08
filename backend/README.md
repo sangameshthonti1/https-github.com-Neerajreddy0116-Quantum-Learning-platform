@@ -2,7 +2,8 @@
 
 Local-only FastAPI foundation for the SIH 2026 Quantum Learning Platform.
 Includes API liveness, configuration, CORS, documentation, and a real local
-Qiskit Aer simulator for 1–3 qubits with H/X/Z/CX gates.
+Qiskit Aer simulator for 1–3 qubits with 16 native gates, parameterized rotations,
+and a bounded OpenQASM 3 subset parser. See [the code/engine contract](../docs/CIRCUIT_CODE.md).
 An optional contextual AI Tutor uses server-side OpenAI Responses and verified
 Qiskit traces; it is disabled until configured. There is no backend assessment,
 database, authentication, algorithm library, or learner-progress storage yet.
@@ -218,8 +219,8 @@ Add future endpoint routers under `app/api/routes/` and register them in
 assessment logic in separate service/domain modules rather than putting that
 logic into route handlers. `create_app()` is the composition point;
 `app.state.settings` exposes its settings for future dependency injection.
-The quantum adapter is separate from public schemas and HTTP routing. Future
-rotation gates need explicit schema variants and implementations; additional
+The quantum adapter is separate from public schemas and HTTP routing. Rotation
+gates use explicit schema variants and one-angle radian parameters; additional
 simulators must honor the same bit-ordering and measurement contract. No
 unsupported feature is represented by fake results.
 

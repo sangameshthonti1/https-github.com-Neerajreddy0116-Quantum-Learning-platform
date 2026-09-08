@@ -15,8 +15,12 @@ in the guided Lab footer to restore the free circuit. Returning to a Lab require
 new simulation/trace inspection before collecting evidence. Collected lesson
 evidence remains saved in this tab’s session.
 
-The current curriculum milestone is on `prebuild/foundations-curriculum`,
-uncommitted for review. See [the curriculum report](../docs/FOUNDATIONS_CURRICULUM.md)
+The expanded-engine milestone is on `prebuild/expanded-engine`, local for review.
+Circuit Lab now includes Visual / Code modes, grouped gates, and radian angle
+controls. Code Mode supports a documented OpenQASM 3 subset and a read-only
+Qiskit example; it does not execute arbitrary Python. See
+[the engine and code-mode contract](../docs/CIRCUIT_CODE.md),
+[the curriculum report](../docs/FOUNDATIONS_CURRICULUM.md)
 and [the earlier shell report](../docs/APP_SHELL.md).
 
 ## Four guided foundations lessons

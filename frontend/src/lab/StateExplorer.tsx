@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { TraceStep } from '../api/types';
 import { displayTolerance, formatNumber, ProbabilityBars, StatevectorTable } from './QuantumStateViews';
 import type { useStateTrace } from './useStateTrace';
+import { angleText, gateDefinitions } from './gates';
 
 type Trace = ReturnType<typeof useStateTrace>;
 
 function stepName(step: TraceStep) {
   const gate = step.gate;
-  return gate ? `${gate.type.toUpperCase()} ${gate.type === 'cx' ? `q${gate.controls[0]} → ` : ''}q${gate.targets[0]}` : 'Initial state';
+  return gate ? `${gate.type.toUpperCase()}${gate.params ? `(${angleText(gate.params[0])})` : ''} ${gate.controls.length ? `${gate.controls.map((q) => `q${q}`).join(', ')} → ` : ''}${gate.targets.map((q) => `q${q}`).join(', ')}` : 'Initial state';
 }
 
 function explain(step: TraceStep, previous?: TraceStep) {
@@ -16,7 +17,8 @@ function explain(step: TraceStep, previous?: TraceStep) {
   const operation = gate.type === 'h' ? `H on q${gate.targets[0]} mixes its |0⟩ and |1⟩ amplitudes with equal weights and a relative sign.`
     : gate.type === 'x' ? `X on q${gate.targets[0]} swaps its |0⟩ and |1⟩ amplitudes.`
       : gate.type === 'z' ? `Z on q${gate.targets[0]} changes the sign of amplitudes whose q${gate.targets[0]} bit is 1.`
-        : `CX flips q${gate.targets[0]} only in basis components whose control q${gate.controls[0]} is 1.`;
+        : gate.type === 'cx' ? `CX flips q${gate.targets[0]} only in basis components whose control q${gate.controls[0]} is 1.`
+          : `${stepName(step)}. ${gateDefinitions[gate.type].description}`;
   const changes = Object.entries(step.probabilities).filter(([label, p]) => Math.abs(p - previous.probabilities[label]!) > displayTolerance);
   const distribution = changes.length ? changes.map(([label, p]) => `|${label}⟩: ${formatNumber(previous.probabilities[label]! * 100)}% → ${formatNumber(p * 100)}%`).join('; ')
     : 'Ideal probabilities are unchanged at display precision; inspect amplitudes for phase changes.';
@@ -35,7 +37,7 @@ export default function StateExplorer({ trace, blocked, pane, onPane }: { trace:
   return <section className="state-explorer" aria-label="State Explorer">
     <header className="lab-results-header"><div><h2>State Explorer</h2><p className="lab-muted">Ideal states before measurement · no sampled counts</p></div>
       <button className="lab-primary" onClick={() => void trace.run()} disabled={loading || blocked}>{loading ? 'Tracing…' : error ? 'Retry trace' : 'Trace circuit'}</button></header>
-    {blocked && <p className="lab-notice">Apply shots or finish/cancel CX placement before tracing.</p>}
+    {blocked && <p className="lab-notice">Apply shots or finish/cancel gate placement before tracing.</p>}
     {loading && <p role="status" className="lab-notice">Tracing circuit…</p>}
     {error && <div role="alert" className="lab-error"><strong>Trace could not complete</strong><p>{error}</p></div>}
     {!loading && (stale || cancelled) && <div role="status" className="lab-notice lab-stale-banner"><strong>Trace is stale</strong><p>The circuit changed{cancelled ? ' during tracing' : ''}. Trace again to inspect the current circuit. Previous intermediate states and highlights are hidden.</p></div>}

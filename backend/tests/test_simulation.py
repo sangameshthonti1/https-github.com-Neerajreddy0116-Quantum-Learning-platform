@@ -338,8 +338,8 @@ def test_gate_ids_must_be_unique_even_for_different_gate_types(client):
 
 @pytest.mark.parametrize(
     "value",
-    ["measure", "measurement", "reset", "rx", "ry", "rz", "u", "p", "s", "t", "y",
-     "swap", "ccx", "H", "X", "Z", "CX", "", None, 1, True, [], {}],
+    ["measure", "measurement", "reset", "rzz", "u", "barrier", "initialize", "crz",
+     "H", "X", "Z", "CX", "", None, 1, True, [], {}],
 )
 def test_unsupported_gates_and_nonlowercase_types_are_rejected(client, value):
     gate = _gate(value, control=1 if value == "CX" else None)

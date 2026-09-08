@@ -1,5 +1,6 @@
 import { useLayoutEffect, useReducer } from 'react';
 import type { Gate, SimulationRequest } from '../api/types';
+import { gateDefinitions } from './gates';
 
 export const emptyCircuit = (): SimulationRequest => ({
   numQubits: 2, gates: [], shots: 1024, backend: 'qiskit', seedSimulator: 42,
@@ -12,7 +13,7 @@ export function circuitKey(request: SimulationRequest): string {
     shots: request.shots,
     backend: request.backend,
     seedSimulator: request.seedSimulator ?? null,
-    gates: request.gates.map(({ id, type, targets, controls }) => ({ id, type, targets, controls })),
+    gates: request.gates.map(({ id, type, targets, controls, params }) => ({ id, type, targets, controls, ...(params ? { params } : {}) })),
   });
 }
 
@@ -34,15 +35,19 @@ type Edit =
   | { type: 'undo' | 'redo' | 'reset' };
 
 function validate(request: SimulationRequest): string | null {
+  if (request.backend !== 'qiskit') return 'Use the local Qiskit simulator.';
   if (!Number.isInteger(request.numQubits) || request.numQubits < 1 || request.numQubits > 3) return 'Use between 1 and 3 qubits.';
   if (!Number.isInteger(request.shots) || request.shots < 1 || request.shots > 8192) return 'Shots must be an integer between 1 and 8192.';
   if (request.gates.length > 256) return 'The circuit limit is 256 gates. Delete a gate before adding another.';
   const ids = new Set<string>();
   for (const gate of request.gates) {
+    const definition = gateDefinitions[gate.type];
+    if (!definition) return 'Unsupported gate.';
     if (ids.has(gate.id)) return 'Gate IDs must be unique.';
     ids.add(gate.id);
-    if (gate.targets.length !== 1 || gate.controls.length !== (gate.type === 'cx' ? 1 : 0)) return 'Invalid gate target/control configuration.';
-    if (gate.type === 'cx' && gate.controls[0] === gate.targets[0]) return 'CX control and target must be different qubits.';
+    if (gate.targets.length !== definition.targets || gate.controls.length !== definition.controls) return 'Invalid gate target/control configuration.';
+    if (new Set([...gate.targets, ...gate.controls]).size !== definition.targets + definition.controls) return 'Controls and targets must be different qubits.';
+    if (definition.parameterized ? !Array.isArray(gate.params) || gate.params.length !== 1 || typeof gate.params[0] !== 'number' || !Number.isFinite(gate.params[0]) : gate.params !== undefined) return 'This gate needs exactly its supported parameters, with finite angles in radians.';
     if ([...gate.targets, ...gate.controls].some((q) => !Number.isInteger(q) || q < 0 || q >= request.numQubits)) {
       return 'Remove or move gates on the last qubit before removing that qubit.';
     }
@@ -97,8 +102,10 @@ export function validCircuitDraft(draft: unknown): draft is SimulationRequest {
   if (!draft || typeof draft !== 'object') return false;
   const value = draft as SimulationRequest;
   return value.backend === 'qiskit' && Array.isArray(value.gates) && value.gates.every((gate) =>
-    gate && ['h', 'x', 'z', 'cx'].includes(gate.type) && typeof gate.id === 'string' && !!gate.id.trim() && gate.id.length <= 64
+    gate && Object.hasOwn(gateDefinitions, gate.type) && typeof gate.id === 'string' && !!gate.id.trim() && gate.id.length <= 64
+    && Object.keys(gate).every((key) => ['id', 'type', 'targets', 'controls', ...(gateDefinitions[gate.type].parameterized ? ['params'] : [])].includes(key))
     && Array.isArray(gate.targets) && Array.isArray(gate.controls))
+    && Object.keys(value).every((key) => ['numQubits', 'gates', 'shots', 'backend', 'seedSimulator'].includes(key))
     && (value.seedSimulator == null || (Number.isInteger(value.seedSimulator) && value.seedSimulator >= 0 && value.seedSimulator <= 4294967295))
     && validate(value) === null;
 }

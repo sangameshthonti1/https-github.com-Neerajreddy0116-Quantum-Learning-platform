@@ -4,6 +4,7 @@ from app.schemas.simulation import SimulationRequest
 from app.schemas.tutor import CircuitFacts, TutorRequest
 from app.services.qiskit_trace import trace_circuit
 from app.services.tutor_lessons import LESSONS
+from app.services.quantum_gates import OPERATIONS
 
 
 def circuit_facts(circuit: SimulationRequest, selected: int | None) -> CircuitFacts:
@@ -18,7 +19,8 @@ def build_context(request: TutorRequest) -> tuple[dict, CircuitFacts | None]:
     context = {
         "lesson": LESSONS.get(request.lesson_id),
         "circuit": None,
-        "limits": {"qubits": [1, 3], "gates": ["h", "x", "z", "cx"], "maxGates": 256, "maxSuggestedGates": 32},
+        "limits": {"qubits": [1, 3], "gates": list(OPERATIONS), "angleUnits": "radians", "maxGates": 256,
+                   "suggestionGates": ["h", "x", "z", "cx"], "maxSuggestedGates": 32},
         "measurement": "Ideal pre-measurement states. No sampling performed for this answer. Shots and seeds are not counts. Do not infer the student's sampled counts.",
     }
     if facts:
@@ -26,7 +28,9 @@ def build_context(request: TutorRequest) -> tuple[dict, CircuitFacts | None]:
             "source": facts.source, "numQubits": facts.circuit.num_qubits,
             "initialState": "0" * facts.circuit.num_qubits, "bitOrder": facts.bit_order,
             # Gate IDs are opaque client text, irrelevant to physics; never sent.
-            "orderedGates": [{"step": i, "type": g.type, "targets": g.targets, "controls": g.controls} for i, g in enumerate(facts.circuit.gates, 1)],
+            "orderedGates": [{"step": i, "type": g.type, "targets": g.targets, "controls": g.controls,
+                              **({"params": g.params} if hasattr(g, "params") else {})}
+                             for i, g in enumerate(facts.circuit.gates, 1)],
             "selectedStep": facts.selected_step, "totalSteps": facts.total_steps,
             "snapshotsComplete": len(facts.snapshots) == facts.total_steps,
             "snapshots": [{

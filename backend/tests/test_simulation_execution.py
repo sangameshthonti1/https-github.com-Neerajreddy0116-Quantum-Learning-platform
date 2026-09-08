@@ -105,5 +105,7 @@ def test_openapi_publishes_backend_independent_simulation_contract(client):
     assert set(request["required"]) == {"numQubits", "gates", "shots", "backend"}
     gates = request["properties"]["gates"]["items"]
     assert gates["discriminator"]["propertyName"] == "type"
-    assert set(gates["discriminator"]["mapping"]) == {"h", "x", "z", "cx"}
+    assert set(gates["discriminator"]["mapping"]) == {
+        "h", "x", "y", "z", "s", "sdg", "t", "tdg", "rx", "ry", "rz", "p", "cx", "cz", "swap", "ccx",
+    }
     assert set(models["ComplexAmplitude"]["properties"]) == {"real", "imag"}
