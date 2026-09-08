@@ -25,13 +25,14 @@ import './explorer.css';
 import { useTutorLabContext } from '../tutor/TutorProvider';
 import type { Challenge } from '../challenges/types';
 import { ChallengeBrief, ChallengeGrading } from '../challenges/ChallengeGuide';
+import type { AlgorithmWorkspace } from '../algorithms/workspace';
 
-export default function CircuitLab({ experiment = null, initialExploring = false, challenge, nextChallenge }: { experiment?: WorkspaceExperiment | null; initialExploring?: boolean; challenge?: Challenge; nextChallenge?: Challenge }) {
+export default function CircuitLab({ experiment = null, initialExploring = false, challenge, nextChallenge, algorithm }: { experiment?: WorkspaceExperiment | null; initialExploring?: boolean; challenge?: Challenge; nextChallenge?: Challenge; algorithm?: AlgorithmWorkspace }) {
   const guided = foundationWorkspace(experiment);
   const legacy = experiment === 'h' || experiment === 'hh' ? experiment : null;
-  const [initialRequest] = useState(() => challenge?.startingCircuit ?? (guided ? foundationCircuit(guided.id, guided.experiment) : legacy ? lessonCircuit(legacy) : undefined));
-  const workspaceKey = challenge ? `challenge:${challenge.id}` : experiment ?? 'free';
-  const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor(initialRequest, workspaceKey, !!challenge);
+  const [initialRequest] = useState(() => algorithm?.definition.circuit ?? challenge?.startingCircuit ?? (guided ? foundationCircuit(guided.id, guided.experiment) : legacy ? lessonCircuit(legacy) : undefined));
+  const workspaceKey = algorithm?.workspaceKey ?? (challenge ? `challenge:${challenge.id}` : experiment ?? 'free');
+  const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor(initialRequest, workspaceKey, !!challenge || !!algorithm);
   const trace = useStateTrace(request);
   const [exploring, setExploring] = useState(initialExploring);
   const [codeMode, setCodeMode] = useState(false);
@@ -60,7 +61,7 @@ export default function CircuitLab({ experiment = null, initialExploring = false
     lessonId: guided?.id ?? (legacy ? 'superposition' : null), apply: applyTutorCircuit });
 
   useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
-  useEffect(() => { if (!challenge) rememberWorkspace(experiment); }, [experiment, challenge]);
+  useEffect(() => { if (!challenge && !algorithm) rememberWorkspace(experiment); }, [experiment, challenge, algorithm]);
   useEffect(() => { setExploring(initialExploring); setMobilePanel('circuit'); }, [initialExploring]);
   useEffect(() => {
     const foundation = foundationWorkspace(experiment);
@@ -126,6 +127,7 @@ export default function CircuitLab({ experiment = null, initialExploring = false
     if (event.key === 'Escape' && (selected || pending)) { event.preventDefault(); deselect(); }
   }}>
     {challenge && <ChallengeBrief challenge={challenge} />}
+    {algorithm && <div className="lab-notice algorithm-lab-source"><strong>Algorithm circuit · editable copy</strong><span>This workspace has its own draft and Undo history. Changes here do not alter the algorithm experiment.</span><Link href={algorithm.returnHref}>Return to algorithm</Link></div>}
     <header className="lab-toolbar">
       <div><p className="lab-eyebrow">{challenge ? 'YOUR CHALLENGE CIRCUIT' : experiment ? 'GUIDED EXPERIMENT' : 'BUILD · RUN · OBSERVE'}</p>{challenge ? <h2>Circuit Lab</h2> : <h1>Circuit Lab</h1>}</div>
       <span className="lab-status lab-toolbar-status" data-status={(exploring ? traceStatus : status).toLowerCase()} role="status">{exploring ? `Trace ${traceStatus.toLowerCase()}` : status}</span>
@@ -140,7 +142,7 @@ export default function CircuitLab({ experiment = null, initialExploring = false
         <button onClick={() => { setExploring(true); setSelectedId(null); setMobilePanel('circuit'); void trace.run(); }} disabled={trace.loading || shotsPending || pending !== null}>Explore steps</button>
         <button className="lab-primary" onClick={() => { void run(); setExploring(false); setMobilePanel('results'); }} disabled={loading || shotsPending || pending !== null} aria-label="Run Simulation">{loading ? 'Running…' : 'Run Simulation'} <span aria-hidden="true">▶</span></button>
       </div>
-      {!challenge && <Link className="lab-lesson-link" href={guided ? `/learn/${guided.id}` : '/learn/superposition'}>{experiment ? 'Return to lesson' : 'Learn: Superposition'}</Link>}
+      {!challenge && !algorithm && <Link className="lab-lesson-link" href={guided ? `/learn/${guided.id}` : '/learn/superposition'}>{experiment ? 'Return to lesson' : 'Learn: Superposition'}</Link>}
     </header>
     <nav className="lab-mobile-nav" aria-label="Workspace panels">
       {(['settings', 'circuit', 'results'] as const).map((panel) => <button key={panel} aria-pressed={mobilePanel === panel} data-active={mobilePanel === panel} onClick={() => { setMobilePanel(panel); if (panel !== 'circuit') setExploring(false); }}>{panel === 'settings' ? 'Gates & settings' : panel === 'circuit' ? 'Circuit' : 'Results'}</button>)}
@@ -197,6 +199,6 @@ export default function CircuitLab({ experiment = null, initialExploring = false
         <div hidden={exploring}><ResultsPanel request={request} result={result} stale={stale} loading={loading} error={error} /></div>
       </aside>
     </div>
-    <footer className="lab-footer"><span>{experiment || challenge ? <Link href="/lab?workspace=free">Open free exploration</Link> : 'Quantum Learning · Circuit Lab'}</span><span>Tab-session draft · last 100 edits undoable</span><a className="lab-test-link" href="/circuit-test">Circuit Test ↗</a></footer>
+    <footer className="lab-footer"><span>{experiment || challenge || algorithm ? <Link href="/lab?workspace=free">Open free exploration</Link> : 'Quantum Learning · Circuit Lab'}</span><span>Tab-session draft · last 100 edits undoable</span><a className="lab-test-link" href="/circuit-test">Circuit Test ↗</a></footer>
   </main>;
 }

@@ -8,7 +8,7 @@ const items: { href: string; label: string; icon: IconName; upcoming?: boolean }
   { href: '/', label: 'Dashboard', icon: 'dashboard' },
   { href: '/learn', label: 'Learn', icon: 'learn' },
   { href: '/lab', label: 'Circuit Lab', icon: 'lab' },
-  { href: '/algorithms', label: 'Algorithms', icon: 'algorithms', upcoming: true },
+  { href: '/algorithms', label: 'Algorithms', icon: 'algorithms' },
   { href: '/challenges', label: 'Challenges', icon: 'challenges' },
   { href: '/progress', label: 'Progress', icon: 'progress' },
 ];
@@ -26,14 +26,14 @@ function initialCollapsed() {
   try { return localStorage.getItem('qlp-navigation-collapsed') === 'true'; } catch { return false; }
 }
 export default function AppShell({ path, children }: { path: string; children: ReactNode }) {
-  const focused = path.startsWith('/lab') || path.startsWith('/learn/') || path.startsWith('/challenges/');
+  const focused = path.startsWith('/lab') || path.startsWith('/learn/') || path.startsWith('/challenges/') || path.startsWith('/algorithms/');
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [expanded, setExpanded] = useState(false);
   const drawer = useRef<HTMLDialogElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const lessonId = path.slice('/learn/'.length);
-  const title = path.startsWith('/challenges/') ? 'Challenge workspace' : path.startsWith('/learn/') && isFoundationId(lessonId) ? foundations[lessonId].title : path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
+  const title = path === '/algorithms/deutsch-jozsa' ? 'Deutsch–Jozsa' : path === '/algorithms/grover' ? 'Grover’s search' : path.startsWith('/challenges/') ? 'Challenge workspace' : path.startsWith('/learn/') && isFoundationId(lessonId) ? foundations[lessonId].title : path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
   useEffect(() => {
     document.title = `${title} · Quantum Learning`;
     setExpanded(false);

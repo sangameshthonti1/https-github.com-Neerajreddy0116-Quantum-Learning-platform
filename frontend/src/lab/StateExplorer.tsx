@@ -25,7 +25,7 @@ function explain(step: TraceStep, previous?: TraceStep) {
   return `${operation} ${distribution}`;
 }
 
-export default function StateExplorer({ trace, blocked, pane, onPane }: { trace: Trace; blocked: boolean; pane: 'joint' | 'qubit'; onPane: (pane: 'joint' | 'qubit') => void }) {
+export default function StateExplorer({ trace, blocked, pane, onPane, embedded = false }: { trace: Trace; blocked: boolean; pane: 'joint' | 'qubit'; onPane: (pane: 'joint' | 'qubit') => void; embedded?: boolean }) {
   const [view, setView] = useState<'probabilities' | 'statevector'>('probabilities');
   const timeline = useRef<HTMLDivElement | null>(null);
   const { snapshot, step, index, setIndex, loading, stale, error, cancelled } = trace;
@@ -36,7 +36,7 @@ export default function StateExplorer({ trace, blocked, pane, onPane }: { trace:
   }, [index]);
   return <section className="state-explorer" aria-label="State Explorer">
     <header className="lab-results-header"><div><h2>State Explorer</h2><p className="lab-muted">Ideal states before measurement · no sampled counts</p></div>
-      <button className="lab-primary" onClick={() => void trace.run()} disabled={loading || blocked}>{loading ? 'Tracing…' : error ? 'Retry trace' : 'Trace circuit'}</button></header>
+      {!embedded && <button className="lab-primary" onClick={() => void trace.run()} disabled={loading || blocked}>{loading ? 'Tracing…' : error ? 'Retry trace' : 'Trace circuit'}</button>}</header>
     {blocked && <p className="lab-notice">Apply shots or finish/cancel gate placement before tracing.</p>}
     {loading && <p role="status" className="lab-notice">Tracing circuit…</p>}
     {error && <div role="alert" className="lab-error"><strong>Trace could not complete</strong><p>{error}</p></div>}

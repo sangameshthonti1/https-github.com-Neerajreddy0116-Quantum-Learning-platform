@@ -5,8 +5,12 @@ Includes API liveness, configuration, CORS, documentation, and a real local
 Qiskit Aer simulator for 1–3 qubits with 16 native gates, parameterized rotations,
 and a bounded OpenQASM 3 subset parser. See [the code/engine contract](../docs/CIRCUIT_CODE.md).
 An optional contextual AI Tutor uses server-side OpenAI Responses and verified
-Qiskit traces; it is disabled until configured. There is no backend assessment,
-database, authentication, algorithm library, or learner-progress storage yet.
+Qiskit traces; it is disabled until configured. Eight circuit challenges use
+server-side grading. There is no database, authentication, or server-side
+learner-progress storage. The bounded
+Algorithm Explorer now provides real Deutsch–Jozsa and Grover circuits through
+`GET /api/algorithms`, `POST /api/algorithms/build`, and `POST /api/algorithms/run`.
+See [supported variants, contracts, and verification](../docs/ALGORITHM_EXPLORER.md).
 
 ## Python and isolation
 

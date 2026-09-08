@@ -5,7 +5,8 @@
 Open **http://127.0.0.1:5173/** for the student dashboard. `/learn` is the
 foundations curriculum, `/progress` shows actual tab-session activity, `/lab`
 opens the existing Circuit Lab, and `/lab/states` opens its State Explorer.
-Algorithms and Challenges are clearly marked upcoming. The lesson and Lab use a
+Algorithms offers Deutsch–Jozsa and Grover experiments; Challenges offers eight
+server-graded tasks. The lesson and Lab use a
 compact global rail; on mobile, open the navigation drawer from the topbar.
 
 Ordinary navigation restores the current circuit and retains undo history in
@@ -22,6 +23,22 @@ Qiskit example; it does not execute arbitrary Python. See
 [the engine and code-mode contract](../docs/CIRCUIT_CODE.md),
 [the curriculum report](../docs/FOUNDATIONS_CURRICULUM.md)
 and [the earlier shell report](../docs/APP_SHELL.md).
+
+## Algorithm Explorer
+
+Open `/algorithms` for the catalog, `/algorithms/deutsch-jozsa` for promised
+Boolean functions on one or two input bits, and `/algorithms/grover` for a two-
+or four-item search with one marked item and 0–4 iterations. Each builds a
+server-owned circuit and runs real Qiskit sampling and tracing. Predictions,
+counts, probabilities, stage navigation, amplitudes, and the shared Bloch sphere
+are integrated into the learning page. Parameter changes invalidate results.
+
+“Open a copy in Circuit Lab” creates an isolated editable workspace with a return
+route and preserves free/lesson/challenge drafts. Selections and Lab drafts
+survive reload in this tab; algorithm results and practice answers survive
+client navigation but require another run after reload. No live AI is required.
+See [the complete implementation and review report](../docs/ALGORITHM_EXPLORER.md).
+The local milestone review URL is **http://127.0.0.1:5181/algorithms**.
 
 ## Four guided foundations lessons
 

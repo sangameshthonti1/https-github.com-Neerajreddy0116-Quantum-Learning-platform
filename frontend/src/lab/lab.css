@@ -1,4 +1,6 @@
 body:has(.lab) { margin: 0; }
+.algorithm-lab-source { display: flex; flex-wrap: wrap; gap: 8px 20px; flex: 0 0 auto; }
+.algorithm-lab-source a { margin-left: auto; }
 
 .lab {
   --lab-ink: #24364b;

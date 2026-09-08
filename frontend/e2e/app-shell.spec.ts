@@ -78,7 +78,7 @@ for (const [route, heading, active] of [
   const current = page.getByRole('navigation', { name: 'Main navigation' }).locator('[aria-current="page"]');
   await expect(current).toHaveCount(1); await expect(current).toContainText(active);
   if (route === '/lab/states') await expect(button(page, 'State Explorer')).toHaveAttribute('aria-pressed', 'true');
-  if (route === '/algorithms') await expect(page.getByText('Upcoming', { exact: true })).toBeVisible();
+  if (route === '/algorithms') { await expect(page.getByRole('article')).toHaveCount(2); await expect(page.getByText('Available', { exact: true })).toHaveCount(2); }
   if (route === '/challenges') await expect(page.getByRole('article')).toHaveCount(8);
   await noOverflow(page);
 });

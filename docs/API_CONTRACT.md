@@ -384,3 +384,12 @@ The implementation uses `qiskit.QuantumCircuit`, `qiskit.transpile`,
 The existing simulation and trace contracts are unchanged. `POST /api/ai/tutor`
 adds bounded contextual tutoring with independently computed Qiskit facts and
 validated, opt-in circuit proposals. See [AI Tutor contract, errors and limits](AI_TUTOR.md).
+
+## Algorithm Explorer additions
+
+The existing simulation, trace, parser, challenge and Tutor contracts are
+unchanged. `GET /api/algorithms` lists trusted definitions;
+`POST /api/algorithms/build` validates selections and returns a canonical circuit;
+`POST /api/algorithms/run` returns that definition, the existing simulation and
+trace response shapes, and state-derived algorithm interpretation. See the
+[algorithm contract, request examples, limits and bit ordering](ALGORITHM_EXPLORER.md#api-additions).
