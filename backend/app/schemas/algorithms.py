@@ -4,7 +4,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, StrictInt, model_validator
 
-from app.schemas.simulation import RequestModel, ResponseModel, ShotCount, SimulatorSeed, SimulationRequest, SimulationResponse
+from app.schemas.simulation import RequestModel, ResponseModel, ShotCount, SimulatorBackend, SimulatorSeed, SimulationRequest, SimulationResponse
 from app.schemas.trace import TraceResponse
 
 SmallRegister = Annotated[StrictInt, Field(ge=1, le=2)]
@@ -18,6 +18,7 @@ class DeutschJozsaRequest(RequestModel):
     oracle_id: OracleId
     shots: ShotCount = 1024
     seed_simulator: SimulatorSeed | None = None
+    backend: SimulatorBackend = "qiskit"
 
     @model_validator(mode="after")
     def supported_oracle(self) -> Self:
@@ -33,6 +34,7 @@ class GroverRequest(RequestModel):
     iterations: Annotated[StrictInt, Field(ge=0, le=4)]
     shots: ShotCount = 1024
     seed_simulator: SimulatorSeed | None = None
+    backend: SimulatorBackend = "qiskit"
 
     @model_validator(mode="after")
     def matching_item(self) -> Self:

@@ -102,7 +102,9 @@ def test_openapi_publishes_backend_independent_simulation_contract(client):
     assert {"200", "422", "500"} <= set(endpoint["responses"])
     models = schema["components"]["schemas"]
     request = models["SimulationRequest"]
-    assert set(request["required"]) == {"numQubits", "gates", "shots", "backend"}
+    assert set(request["required"]) == {"numQubits", "gates", "shots"}
+    assert request["properties"]["backend"]["default"] == "qiskit"
+    assert request["properties"]["backend"]["enum"] == ["qiskit", "pennylane"]
     gates = request["properties"]["gates"]["items"]
     assert gates["discriminator"]["propertyName"] == "type"
     assert set(gates["discriminator"]["mapping"]) == {

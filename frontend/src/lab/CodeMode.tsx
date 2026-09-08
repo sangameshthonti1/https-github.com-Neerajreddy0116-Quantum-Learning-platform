@@ -31,8 +31,11 @@ export default function CodeMode({ request, workspaceKey, onApply }: {
   const helpId = useId();
   const errorId = useId();
   const key = circuitKey(request);
+  // Simulator choice does not alter OpenQASM. Keep pending code across switches,
+  // while the full request key still cancels a parser response for the old backend.
+  const codeKey = circuitKey({ ...request, backend: 'qiskit' });
   const source = draft?.source ?? toOpenQasm(request);
-  const conflict = draft !== null && draft.base !== key;
+  const conflict = draft !== null && draft.base !== codeKey;
   useLayoutEffect(() => {
     if (active.current) { active.current.abort(); active.current = null; setBusy(false); }
     setDiagnostics([]); setFailed(false); setMessage('');
@@ -53,7 +56,7 @@ export default function CodeMode({ request, workspaceKey, onApply }: {
       setMessage(`Code was not inserted: the limit is ${MAX_CODE_LENGTH.toLocaleString()} characters. Your previous code and circuit are unchanged.`);
       return;
     }
-    setDraft({ source: text, base: draft?.base ?? key });
+    setDraft({ source: text, base: draft?.base ?? codeKey });
     setDiagnostics([]); setFailed(false); setMessage('');
   }
   function discard() {

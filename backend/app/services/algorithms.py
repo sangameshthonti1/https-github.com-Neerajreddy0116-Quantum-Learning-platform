@@ -1,4 +1,4 @@
-"""Trusted gate builders and interpretation of actual Qiskit outputs, never lookup results."""
+"""Trusted gate builders and interpretation of actual simulator outputs, never lookup results."""
 
 from hashlib import sha256
 import json
@@ -9,8 +9,8 @@ from app.schemas.algorithms import (
 )
 from app.schemas.simulation import SimulationRequest
 from app.services.algorithm_catalog import ORACLES, oracle_definition
-from app.services.qiskit_simulator import SimulationExecutionError, simulate_circuit
-from app.services.qiskit_trace import trace_circuit
+from app.services.simulation_errors import SimulationExecutionError
+from app.services.simulators import simulate_circuit, trace_circuit
 
 TOLERANCE = 1e-10
 
@@ -80,7 +80,7 @@ def build_algorithm(parameters: AlgorithmRequest) -> AlgorithmDefinition:
             b.stage(f"diffuser-{iteration}", f"{iteration} · Diffuser", "Reflect amplitudes about their average, up to an overall minus sign. Relative signs turn into changed probabilities. Repeating can amplify or reduce the marked probability; inspect the observed value.", iteration)
     circuit = SimulationRequest.model_validate({
         "numQubits": qubits, "gates": b.gates, "shots": parameters.shots,
-        "backend": "qiskit", "seedSimulator": parameters.seed_simulator,
+        "backend": parameters.backend, "seedSimulator": parameters.seed_simulator,
     })
     digest = sha256(json.dumps(circuit.model_dump(by_alias=True), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return AlgorithmDefinition(parameters=parameters, circuit=circuit, circuit_digest=digest,

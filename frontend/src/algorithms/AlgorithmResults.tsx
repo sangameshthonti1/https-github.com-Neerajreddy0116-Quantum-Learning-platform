@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { simulatorLabels } from '../api/types';
 import StateExplorer from '../lab/StateExplorer';
 import BlochSphere from '../lab/BlochSphere';
 import { ProbabilityBars } from '../lab/QuantumStateViews';
@@ -47,6 +48,7 @@ export default function AlgorithmResults({ result }: { result: AlgorithmRun }) {
       <StateExplorer embedded blocked={false} pane={pane} onPane={setPane} trace={{ snapshot, index, setIndex, step, stale: false, loading: false, error: null, cancelled: false, run: async () => {} }} />
       <div className="algorithm-bloch"><BlochSphere step={step} /><p className="lab-muted">A sphere describes one qubit’s reduced state. It does not replace the joint statevector.</p></div>
     </div>
-    <details className="algorithm-details algorithm-raw"><summary>Run details · exact parameters, circuit & raw values</summary><p>Display tolerance: 1e-10. Raw values and native global phases are preserved. The full measurement includes every qubit; the Deutsch–Jozsa conclusion uses only the input register.</p><p>Circuit snapshot: <code>{d.circuitDigest}</code>. Qiskit {result.simulation.metadata.qiskitVersion} · Aer {result.simulation.metadata.aerVersion} · seed {result.simulation.metadata.seedSimulator}.</p><pre tabIndex={0} aria-label="Algorithm run JSON">{JSON.stringify(result, null, 2)}</pre></details>
+    <p className="lab-result-backend" data-testid="algorithm-backend">Result from {simulatorLabels[result.simulation.backend]} · local CPU</p>
+    <details className="algorithm-details algorithm-raw"><summary>Run details · exact parameters, circuit & raw values</summary><p>Display tolerance: 1e-10. Raw values and native global phases are preserved. The full measurement includes every qubit; the Deutsch–Jozsa conclusion uses only the input register.</p><p>Circuit snapshot: <code>{d.circuitDigest}</code>. {result.simulation.backend === 'qiskit' ? `Qiskit ${result.simulation.metadata.qiskitVersion} · Aer ${result.simulation.metadata.aerVersion}` : `PennyLane ${result.simulation.metadata.pennylaneVersion} · default.qubit`} · seed {result.simulation.metadata.seedSimulator}.</p><pre tabIndex={0} aria-label="Algorithm run JSON">{JSON.stringify(result, null, 2)}</pre></details>
   </section>;
 }

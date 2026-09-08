@@ -9,6 +9,7 @@ from qiskit import QuantumCircuit, transpile
 from qiskit_aer import AerSimulator
 from qiskit_aer.library import SaveStatevector
 from app.services.quantum_gates import operation
+from app.services.simulation_errors import SimulationExecutionError
 
 from app.schemas.simulation import (
     ComplexAmplitude,
@@ -16,10 +17,6 @@ from app.schemas.simulation import (
     SimulationRequest,
     SimulationResponse,
 )
-
-
-class SimulationExecutionError(RuntimeError):
-    """The local engine failed; no simulation result should be returned."""
 
 
 def simulate_circuit(request: SimulationRequest) -> SimulationResponse:

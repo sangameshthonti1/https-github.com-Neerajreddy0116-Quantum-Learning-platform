@@ -1,5 +1,5 @@
 # Python 3.13 runtime snapshot, including transitive dependencies.
-# Direct dependencies: fastapi, uvicorn, pydantic, pydantic-settings, qiskit, qiskit-aer.
+# Direct dependencies: fastapi, uvicorn, pydantic, pydantic-settings, qiskit, qiskit-aer, pennylane, openai.
 annotated-doc==0.0.5
 annotated-types==0.8.0
 # Starlette 1.6 still uses an alias deprecated by newer AnyIO releases.
@@ -28,6 +28,26 @@ rustworkx==0.18.1
 scipy==1.18.1
 six==1.17.0
 stevedore==5.9.1
+
+# PennyLane default.qubit. Existing quantum/numerical pins above are unchanged.
+# Lightning is a required distribution dependency; this app does not execute it.
+pennylane==0.45.1
+pennylane-lightning==0.45.0
+appdirs==1.4.4
+autograd==1.8.0
+autoray==0.8.4
+cachetools==7.1.8
+certifi==2026.7.22
+charset-normalizer==3.5.1
+diastatic-malt==2.15.3
+gast==0.7.0
+networkx==3.6.1
+packaging==26.3
+requests==2.34.2
+scipy-openblas32==0.3.34.237.0
+termcolor==3.3.0
+tomlkit==0.15.1
+urllib3==2.7.0
 
 # Official OpenAI Responses SDK. No credentials are required for offline tests.
 openai==3.8.0

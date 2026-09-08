@@ -272,7 +272,12 @@ def test_64_character_gate_id_is_accepted(client):
 def test_required_request_fields(client, field):
     payload = _payload()
     del payload[field]
-    _assert_validation_error(client.post(SIMULATE_URL, json=payload))
+    response = client.post(SIMULATE_URL, json=payload)
+    if field == "backend":
+        assert response.status_code == 200
+        assert response.json()["backend"] == "qiskit"
+    else:
+        _assert_validation_error(response)
 
 
 @pytest.mark.parametrize(

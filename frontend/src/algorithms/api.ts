@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isSimulationResponse } from '../api/client';
 import { validTrace } from '../api/traceClient';
+import { isSimulatorBackend } from '../api/types';
 import { circuitKey, validCircuitDraft } from '../lab/useCircuitEditor';
 import type { AlgorithmDefinition, AlgorithmEntry, AlgorithmParameters, AlgorithmRun, OracleDefinition } from './types';
 
@@ -10,10 +11,10 @@ const integer = (v: unknown): v is number => finite(v) && Number.isInteger(v);
 const near = (a: number, b: number) => Math.abs(a - b) <= 1e-10;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export const parameterKey = (p: AlgorithmParameters) => JSON.stringify(p.algorithm === 'deutsch-jozsa'
-  ? [p.algorithm, p.inputQubits, p.oracleId, p.shots, p.seedSimulator]
-  : [p.algorithm, p.numQubits, p.markedItem, p.iterations, p.shots, p.seedSimulator]);
+  ? [p.algorithm, p.inputQubits, p.oracleId, p.shots, p.seedSimulator, p.backend ?? 'qiskit']
+  : [p.algorithm, p.numQubits, p.markedItem, p.iterations, p.shots, p.seedSimulator, p.backend ?? 'qiskit']);
 export function validParameters(v: unknown): v is AlgorithmParameters {
-  if (!record(v) || !integer(v.shots) || v.shots < 1 || v.shots > 8192
+  if (!record(v) || (v.backend !== undefined && !isSimulatorBackend(v.backend)) || !integer(v.shots) || v.shots < 1 || v.shots > 8192
     || !(v.seedSimulator === null || (integer(v.seedSimulator) && v.seedSimulator >= 0 && v.seedSimulator <= 4294967295))) return false;
   return v.algorithm === 'deutsch-jozsa'
     ? (v.inputQubits === 1 || v.inputQubits === 2) && (v.inputQubits === 1 ? ['zero', 'one', 'q0', 'not-q0'] : ['zero', 'one', 'q0', 'not-q0', 'q1', 'not-q1', 'xor', 'xnor']).includes(String(v.oracleId))
@@ -34,7 +35,7 @@ export function validDefinition(v: unknown, parameters?: AlgorithmParameters): v
     || v.bitOrder !== 'q[n-1]...q[0]' || !Array.isArray(v.stages) || !v.stages.length || v.stages.length > 9) return false;
   const p = v.parameters, c = v.circuit;
   const n = p.algorithm === 'deutsch-jozsa' ? p.inputQubits : p.numQubits;
-  if (c.numQubits !== n + (p.algorithm === 'deutsch-jozsa' ? 1 : 0) || c.shots !== p.shots || c.seedSimulator !== p.seedSimulator
+  if (c.backend !== (p.backend ?? 'qiskit') || c.numQubits !== n + (p.algorithm === 'deutsch-jozsa' ? 1 : 0) || c.shots !== p.shots || c.seedSimulator !== p.seedSimulator
     || !same(v.inputRegister, Array.from({ length: n }, (_, i) => i))
     || (p.algorithm === 'deutsch-jozsa' ? v.ancillaQubit !== n || !validOracle(v.oracle) || v.oracle.id !== p.oracleId || v.oracle.inputQubits !== n : v.ancillaQubit !== null || v.oracle !== null)) return false;
   let end = 0;
@@ -56,7 +57,7 @@ export function validRun(v: unknown, definition: AlgorithmDefinition): v is Algo
     || circuitKey(v.definition.circuit) !== circuitKey(definition.circuit) || !same(v.definition.stages, definition.stages)
     || !isSimulationResponse(v.simulation) || !validTrace(v.trace, definition.circuit)) return false;
   const c = definition.circuit, sim = v.simulation, t = v.trace, m = v.interpretation;
-  if (sim.numQubits !== c.numQubits || sim.shots !== c.shots || sim.metadata.gateCount !== c.gates.length
+  if (sim.backend !== c.backend || sim.numQubits !== c.numQubits || sim.shots !== c.shots || sim.metadata.gateCount !== c.gates.length
     || (c.seedSimulator !== null && sim.metadata.seedSimulator !== c.seedSimulator)
     || !record(m) || m.algorithm !== definition.parameters.algorithm || m.tolerance !== 1e-10 || typeof m.explanation !== 'string') return false;
   if (!sim.statevector.every((a, i) => near(a.real, t.steps.at(-1)!.statevector[i]!.real) && near(a.imag, t.steps.at(-1)!.statevector[i]!.imag))) return false;

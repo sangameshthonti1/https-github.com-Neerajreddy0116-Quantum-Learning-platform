@@ -2,7 +2,8 @@
 
 Local-only FastAPI foundation for the SIH 2026 Quantum Learning Platform.
 Includes API liveness, configuration, CORS, documentation, and a real local
-Qiskit Aer simulator for 1–3 qubits with 16 native gates, parameterized rotations,
+Qiskit Aer simulator (default) and independent PennyLane `default.qubit` simulator
+for 1–3 qubits with 16 native gates, parameterized rotations,
 and a bounded OpenQASM 3 subset parser. See [the code/engine contract](../docs/CIRCUIT_CODE.md).
 An optional contextual AI Tutor uses server-side OpenAI Responses and verified
 Qiskit traces; it is disabled until configured. Eight circuit challenges use
@@ -24,6 +25,15 @@ not merely dependency-resolved. Runtime and transitive versions are pinned in
 `requirements.txt`; the original FastAPI dependency pins are preserved.
 The NumPy/SciPy wheels resolved on this Apple Silicon machine target macOS 14+;
 recheck wheel availability before setup on a different operating system.
+
+The second engine is **PennyLane 0.45.1**, verified in the same Python 3.13.7
+environment without changing any existing Qiskit, FastAPI, NumPy or SciPy pin.
+Its package metadata requires Python ≥3.11 and NumPy ≥2.0. The required
+`pennylane-lightning==0.45.0` distribution is installed transitively, but execution
+uses the Python/NumPy `default.qubit` device. No JAX, Torch or PennyLane-Qiskit
+converter is installed. All added dependencies are pinned in `requirements.txt`;
+`packaging==26.3` moved from test-only to runtime requirements at the same version.
+See [the dependency and verification report](../docs/PENNYLANE_BACKEND.md).
 
 ## Setup
 
@@ -110,6 +120,18 @@ measurement. Explicit measurement gates are rejected, not silently removed.
 Qubit 0 is the rightmost bit in labels. See [the complete API contract](../docs/API_CONTRACT.md)
 for schemas, limits, bit ordering, measurement semantics, metadata, and errors.
 
+To run the identical Bell circuit in PennyLane, change only `"backend":"qiskit"`
+to `"backend":"pennylane"` in either example. Omission now defaults to Qiskit;
+other names (including `"default.qubit"`) return HTTP 422. Qiskit responses retain
+their existing version fields; PennyLane returns `pennylaneVersion` and
+`engine: "pennylane.default.qubit"`. There is no engine fallback.
+
+Both engines support H, X, Y, Z, S, S†, T, T†, RX, RY, RZ, P, CX, CZ, SWAP and
+CCX. Exact probabilities come from the analytic state, while counts come from
+the selected framework's finite-shot simulator. Replaying a seed reproduces
+counts within one pinned engine/configuration; the same seed need not produce
+identical counts across frameworks. Ideal states do not depend on shots or seed.
+
 ## Trace a Bell state
 
 Send the identical request to the dedicated trace endpoint:
@@ -129,6 +151,14 @@ mixed (`I/2`) with zero-length Bloch vectors. Qiskit's `Statevector.evolve` and
 `partial_trace` compute these states; no counts or mid-circuit measurements are
 used. Shots and seed are validated but do not affect the trace. Native global
 phase is retained; physical comparisons should be phase-invariant.
+
+PennyLane traces use one real `default.qubit` execution with `Snapshot` at step
+zero and after each gate. Explicit device/count wire order `[n-1, ..., 0]` keeps
+q0 rightmost. `qml.math.reduce_statevector` traces out the other tensor positions.
+The returned density matrices and Bloch vectors support the existing State
+Explorer, including purity `Tr(ρ²)` computed from each matrix. Bell/GHZ reduced
+qubits have purity 0.5, while the joint state is pure. No snapshots are rephased,
+rounded, renormalized or reconstructed from counts.
 
 See [the trace contract](../docs/API_CONTRACT.md#post-apisimulatetrace) for the
 complete schema, conventions, numerical tolerance, bounds, and error envelopes.
@@ -177,6 +207,15 @@ JSON serialization, and seeded sampling. They also test request limits/errors,
 execution-failure handling, and path-specific CORS. Statistical checks use
 tolerances rather than hardcoded stochastic counts.
 
+`test_pennylane_parity.py` adds real cross-engine comparisons for all gates and
+operand orders, basis truth tables, rotations, Bell/GHZ and partly entangled
+states, global phase, every trace step, reduced states, Bloch vectors and purity.
+It also checks bounded sampling/seeds, concurrency, both algorithm builders, and
+that PennyLane executes without invoking Qiskit. `test_pennylane_api.py` covers
+shared validation, limits, engine metadata, failure paths, and unchanged challenge
+grading. See [the verification report](../docs/PENNYLANE_BACKEND.md) for counts
+and numerical results.
+
 Trace tests additionally check all intermediate Bell states, reduced mixed states,
 both CX directions, three-qubit spectators and GHZ states, complex Bloch-Y signs,
 global-phase equivalence, every prefix against real Aer, all 257 snapshots at
@@ -189,7 +228,7 @@ so no running server, external service, or credentials are needed. The live
 Verify actual installed engine versions:
 
 ```sh
-.venv/bin/python -c 'import qiskit, qiskit_aer; print("Qiskit:", qiskit.__version__); print("Aer:", qiskit_aer.__version__)'
+.venv/bin/python -c 'import qiskit, qiskit_aer, pennylane; print("Qiskit:", qiskit.__version__); print("Aer:", qiskit_aer.__version__); print("PennyLane:", pennylane.__version__)'
 ```
 
 ## Layout and extension boundaries
@@ -205,6 +244,9 @@ backend/
 │   ├── schemas/trace.py       # Per-step trace and reduced-state response models
 │   ├── services/qiskit_simulator.py # Circuit construction and real Aer execution
 │   ├── services/qiskit_trace.py # Qiskit state evolution and partial traces
+│   ├── services/simulators.py   # Explicit dispatch over the shared circuit contract
+│   ├── services/pennylane_simulator.py # Independent default.qubit execution and tracing
+│   ├── services/simulation_errors.py # Shared execution failure type
 │   └── api/
 │       ├── router.py           # /api route composition
 │       └── routes/
@@ -227,6 +269,20 @@ The quantum adapter is separate from public schemas and HTTP routing. Rotation
 gates use explicit schema variants and one-angle radian parameters; additional
 simulators must honor the same bit-ordering and measurement contract. No
 unsupported feature is represented by fake results.
+
+`SimulatorAdapter` holds two callables (`simulate`, `trace`); the two engine
+implementations own circuit construction and state extraction. HTTP routes
+validate once with `SimulationRequest`, then dispatch. Imports are lazy, so
+Qiskit requests do not initialize PennyLane. A future engine would implement
+these callables, add its explicit name/metadata types, and pass the same parity
+and validation suites; no additional engines or generic plugin registry exist.
+
+Algorithm requests also accept optional `backend: "qiskit" | "pennylane"`.
+Deutsch–Jozsa and Grover builders, oracle rules and interpretation stay intact.
+Challenge grading deliberately remains authoritative Qiskit Aer, regardless
+of the Lab selector. Tutor grounding stays Qiskit and its live provider remains
+disabled. Limits remain 3 qubits, 256 gates and 8192 shots. Neither engine supports
+noise, mid-circuit measurement, initial-state overrides or quantum hardware here.
 
 This is a tested foundation, not a deployed production service. Authentication,
 rate limits, persistence, external integrations, and deployment configuration

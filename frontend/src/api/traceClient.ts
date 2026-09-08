@@ -9,15 +9,19 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 /** Validate the wire format and snapshot identity before exposing any trace. */
 export function validTrace(v: unknown, request: SimulationRequest): v is TraceResponse {
-  if (!record(v) || v.backend !== 'qiskit' || v.numQubits !== request.numQubits) return false;
+  if (!record(v) || v.backend !== request.backend || v.numQubits !== request.numQubits) return false;
   const basis = Array.from({ length: 2 ** request.numQubits }, (_, i) => i.toString(2).padStart(request.numQubits, '0'));
   if (!same(v.basisOrder, basis) || !Array.isArray(v.steps) || v.steps.length !== request.gates.length + 1) return false;
   const m = v.metadata;
-  if (!record(m) || m.engine !== 'qiskit.quantum_info.Statevector' || m.method !== 'statevector'
+  if (!record(m) || m.method !== 'statevector'
     || m.measurement !== 'terminal-all' || m.statevectorStage !== 'before-measurement' || m.samplingPerformed !== false
-    || m.bitOrder !== 'q[n-1]...q[0]' || !same(m.reducedBasisOrder, ['0', '1']) || m.globalPhase !== 'qiskit-native'
+    || m.bitOrder !== 'q[n-1]...q[0]' || !same(m.reducedBasisOrder, ['0', '1'])
     || m.gateCount !== request.gates.length || m.stepCount !== v.steps.length
-    || !finite(m.executionTimeMs) || m.executionTimeMs < 0 || typeof m.qiskitVersion !== 'string') return false;
+    || !finite(m.executionTimeMs) || m.executionTimeMs < 0) return false;
+  if (request.backend === 'qiskit'
+    ? m.engine !== 'qiskit.quantum_info.Statevector' || m.globalPhase !== 'qiskit-native' || typeof m.qiskitVersion !== 'string' || m.pennylaneVersion !== undefined
+    : request.backend !== 'pennylane' || m.engine !== 'pennylane.default.qubit' || m.globalPhase !== 'pennylane-native'
+      || typeof m.pennylaneVersion !== 'string' || m.qiskitVersion !== undefined) return false;
   for (const [index, step] of v.steps.entries()) {
     if (!record(step) || step.index !== index) return false;
     const gate = request.gates[index - 1];

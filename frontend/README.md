@@ -1,5 +1,35 @@
 # Quantum Learning Platform
 
+## Two real simulators
+
+Circuit Lab now has one compact **Simulator** selector above the workspace:
+**Qiskit Aer** (default) or **PennyLane · default.qubit**. Both run the same
+canonical circuit on the local FastAPI server. Update the backend environment
+with its pinned requirements before selecting PennyLane; no frontend packages
+were added. See [setup and verification](../docs/PENNYLANE_BACKEND.md).
+
+Switching is an undoable setting change: gates, IDs, angles, qubits, shots, seed,
+and unapplied Code Mode text are preserved. The selected backend is saved with
+each tab-session circuit draft and restored on navigation/reload. Templates
+retain the current simulator. Switches mark old simulation results as stale,
+hide old trace/Bloch data, and cancel in-flight requests from the previous
+engine. Request identity guards and backend-aware response validation prevent
+late replies from replacing current results.
+
+Each result and trace names the actual engine used. To compare, run a circuit,
+inspect its probabilities/statevector, switch engines, and run it again. Both
+support all 16 canonical gates, full intermediate states and reduced mixed
+states. Qubit 0 stays the rightmost bit; angles are radians and native global
+phase is retained. Purity is calculated from the returned density matrix.
+Sampled counts may differ across engines even at the same seed; ideal
+probabilities are state-derived and should agree within floating-point tolerance.
+There is no hardware execution, speed ranking, or extra comparison dashboard.
+
+Algorithm Explorer also exposes this selector for Deutsch–Jozsa and Grover,
+using the existing builders and interpretation. Challenge grading still uses
+Qiskit regardless of Lab simulation choice. Lesson completion and AI Tutor
+behavior are unchanged.
+
 ## Application shell
 
 Open **http://127.0.0.1:5173/** for the student dashboard. `/learn` is the
@@ -16,8 +46,8 @@ in the guided Lab footer to restore the free circuit. Returning to a Lab require
 new simulation/trace inspection before collecting evidence. Collected lesson
 evidence remains saved in this tab’s session.
 
-The expanded-engine milestone is on `prebuild/expanded-engine`, local for review.
-Circuit Lab now includes Visual / Code modes, grouped gates, and radian angle
+The current extension is on `feat/pennylane-backend`, based on the verified
+integration checkpoint `a5eed03`. Circuit Lab includes Visual / Code modes, grouped gates, and radian angle
 controls. Code Mode supports a documented OpenQASM 3 subset and a read-only
 Qiskit example; it does not execute arbitrary Python. See
 [the engine and code-mode contract](../docs/CIRCUIT_CODE.md),
@@ -29,7 +59,7 @@ and [the earlier shell report](../docs/APP_SHELL.md).
 Open `/algorithms` for the catalog, `/algorithms/deutsch-jozsa` for promised
 Boolean functions on one or two input bits, and `/algorithms/grover` for a two-
 or four-item search with one marked item and 0–4 iterations. Each builds a
-server-owned circuit and runs real Qiskit sampling and tracing. Predictions,
+server-owned circuit and runs real Qiskit (default) or PennyLane sampling and tracing. Predictions,
 counts, probabilities, stage navigation, amplitudes, and the shared Bloch sphere
 are integrated into the learning page. Parameter changes invalidate results.
 
@@ -38,7 +68,7 @@ route and preserves free/lesson/challenge drafts. Selections and Lab drafts
 survive reload in this tab; algorithm results and practice answers survive
 client navigation but require another run after reload. No live AI is required.
 See [the complete implementation and review report](../docs/ALGORITHM_EXPLORER.md).
-The local milestone review URL is **http://127.0.0.1:5181/algorithms**.
+Use the local server instructions below; this task does not deploy the application.
 
 ## Four guided foundations lessons
 
@@ -74,7 +104,7 @@ report](../docs/LESSON_SUPERPOSITION.md) for architecture, numerical observation
 tests and persistence limits.
 
 An interactive React + TypeScript + Vite scientific workspace connected to the
-**real local FastAPI + Qiskit Aer simulation API**. The lab is at `/lab`; the original
+**real local FastAPI + Qiskit Aer / PennyLane simulation API**. The lab is at `/lab`; the original
 Circuit Test page remains independently accessible at `/circuit-test` with all
 of its original integration assertions preserved. No new dependencies were
 added for the editor or tutor UI. Contextual AI tutoring is optional and requires
@@ -157,19 +187,24 @@ native browser support with no added dependencies.
 
 ### Build and edit
 
-- Choose **H**, **X**, **Z**, or **CX** in the gate palette, then click an empty
+- Choose any supported gate in the grouped palette, then click an empty
   wire cell. A cell in an existing column inserts before that operation; the
   final column appends. One operation per column maps exactly to API gate order.
-- For **CX**, click the **control** first, then a **different target qubit in the
+- Both simulators support **H, X, Y, Z, S, S†, T, T†, RX, RY, RZ, P, CX, CZ,
+  SWAP and CCX**. For RX/RY/RZ/P, enter a finite angle in radians or use a preset
+  before placement; the inspector can edit it later.
+- For **CX/CZ**, click the **control** first, then a **different target qubit in the
   same column**. A preview marks the pending control. A solid connector joins
-  the committed control dot and target symbol. Cancel CX or Escape in the grid
-  abandons the incomplete placement; no partial gate enters the request.
-- On desktop, drag **H**, **X**, or **Z** from the palette onto an empty wire
-  cell. Dragging **CX** places its pending control; click a different wire at
-  that step to finish, or cancel. Occupied cells never accept drops. Dragging
+  the committed control dot and target symbol. **CCX** selects two distinct
+  controls then a third target; **SWAP** selects two distinct targets. Cancel
+  placement or Escape abandons an incomplete gate; no partial gate enters the request.
+- On desktop, drag a gate from the palette onto an empty wire cell. For a
+  multi-qubit gate, continue selecting its remaining operands in that column
+  or cancel. Occupied cells never accept drops. Dragging
   existing gates is not supported; use Earlier / Later in the inspector.
 - Alternatively, expand **Add gate with form** below the canvas: choose type, target,
-  control (CX only), and insertion position, then **Add gate**.
+  any additional targets/controls, angle when applicable, and insertion position,
+  then **Add gate**.
 - Click an existing gate to inspect it. **Apply gate changes** updates its type
   or qubits; **Earlier / Later** changes execution order; **Delete gate** removes
   it. **Done · place gates**, **Deselect**, a palette tool, or **Escape** returns
@@ -178,9 +213,9 @@ native browser support with no added dependencies.
   screens. Form drafts are not part of the circuit until applied.
 - Add/remove qubits within **1–3**. Removing the highest-index qubit is disabled
   while any gate touches it: move or delete those gates first. Gates are never
-  silently dropped. CX requires at least two qubits.
+  silently dropped. CX/CZ/SWAP require two qubits, and CCX requires three.
 - Enter **1–8192 integer shots**, then **Apply shots**. Run is disabled while the
-  shot value is unapplied or a CX placement is incomplete. Gate limit: **256**.
+  shot value is unapplied or a multi-qubit placement is incomplete. Gate limit: **256**.
 - Templates replace the circuit with the existing Empty, X, H, H followed by H,
   or Bell State requests. Replacement is undoable.
 - **Undo/Redo** restore complete canonical request snapshots, including settings,
@@ -273,6 +308,9 @@ Each template uses 1024 shots, the `qiskit` backend, and seed 42 for repeatable
 local testing. The selector offers circuit inputs, never cached simulation
 outputs. The page contains no mock results or client-side quantum simulator.
 
+Those are the Circuit Test template defaults. In Circuit Lab, loading the same
+template preserves the selected simulator, so it can also run in PennyLane.
+
 The response renders:
 
 - Ideal-probability meters and percentages for every basis state.
@@ -329,6 +367,15 @@ development backend on 8000 untouched. Ensure **ports 8001 and 5174 are free**, 
 ```sh
 npm run test:e2e
 ```
+
+The second-simulator coverage is in `e2e/simulators.spec.ts`. To run just that
+suite: `npm run test:e2e -- e2e/simulators.spec.ts`. It executes both real engines,
+checks backend selection and response metadata, holds real responses to test
+races in both directions, verifies circuit/code draft preservation and reload,
+and exercises algorithm selection and unchanged challenge grading. Desktop
+and mobile H, Bell, RY(π/2), and CCX walkthroughs capture result/trace screenshots
+and real JSON; a 320px visual SWAP checks bit order and keyboard selection.
+Screenshots and JSON attachments are in ignored `frontend/test-results/`.
 
 The bounded suite starts its own Uvicorn and Vite processes, launches headless
 Chromium, and stops its owned processes afterward. It refuses to reuse an

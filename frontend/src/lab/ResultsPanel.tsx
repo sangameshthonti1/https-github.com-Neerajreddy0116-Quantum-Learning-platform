@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import type { SimulationRequest, SimulationResponse } from '../api/types';
+import { simulatorLabels } from '../api/types';
 import { formatNumber, ProbabilityBars, StatevectorTable } from './QuantumStateViews';
 
 export interface ResultsPanelProps {
@@ -35,6 +36,7 @@ export default function ResultsPanel({ request, result, stale, loading, error }:
         <h2>Results</h2>
         {response && <span className="lab-chip">{response.shots.toLocaleString()} shots</span>}
       </header>
+      {response && <p className="lab-result-backend" data-testid="result-backend">Result from {simulatorLabels[response.backend]} · local CPU</p>}
 
       {loading && <p className="lab-notice" role="status">Running simulation… {result ? 'Showing the last successful result snapshot until this run completes.' : 'Results will appear when this run completes.'}</p>}
       {error && (
@@ -140,7 +142,7 @@ export default function ResultsPanel({ request, result, stale, loading, error }:
         <summary>Details</summary>
         <h3>Reading the results</h3>
         <p className="lab-muted">Labels: <code>q[n−1]…q[0]</code>; q0 is the rightmost, least-significant bit. For example, X on q0 in a two-qubit circuit gives 01. All qubits are measured at the end; the statevector is saved before measurement.</p>
-        <p className="lab-muted">Simulator: local Qiskit Aer, noiseless CPU. Initial state: |0…0⟩. Current seed: {request.seedSimulator ?? 'chosen by simulator'}.</p>
+        <p className="lab-muted">Selected simulator: {simulatorLabels[request.backend]}, noiseless CPU. Initial state: |0…0⟩. Current seed: {request.seedSimulator ?? 'chosen by simulator'}. Seeds reproduce counts within the same framework and version; the two frameworks use different random samplers.</p>
         {response && (
           <>
             <h3>Result execution metadata</h3>

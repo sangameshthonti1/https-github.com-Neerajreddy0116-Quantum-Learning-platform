@@ -1,5 +1,5 @@
 import { useLayoutEffect, useReducer } from 'react';
-import type { Gate, SimulationRequest } from '../api/types';
+import { isSimulatorBackend, type Gate, type SimulationRequest, type SimulatorBackend } from '../api/types';
 import { gateDefinitions } from './gates';
 
 export const emptyCircuit = (): SimulationRequest => ({
@@ -32,10 +32,11 @@ type Edit =
   | { type: 'move'; id: string; delta: -1 | 1 }
   | { type: 'qubits'; count: number }
   | { type: 'shots'; shots: number }
+  | { type: 'backend'; backend: SimulatorBackend }
   | { type: 'undo' | 'redo' | 'reset' };
 
 function validate(request: SimulationRequest): string | null {
-  if (request.backend !== 'qiskit') return 'Use the local Qiskit simulator.';
+  if (!isSimulatorBackend(request.backend)) return 'Choose Qiskit Aer or PennyLane.';
   if (!Number.isInteger(request.numQubits) || request.numQubits < 1 || request.numQubits > 3) return 'Use between 1 and 3 qubits.';
   if (!Number.isInteger(request.shots) || request.shots < 1 || request.shots > 8192) return 'Shots must be an integer between 1 and 8192.';
   if (request.gates.length > 256) return 'The circuit limit is 256 gates. Delete a gate before adding another.';
@@ -68,7 +69,7 @@ export function editorReducer(history: History, action: Edit): History {
   let next = present;
   switch (action.type) {
     case 'replace': next = structuredClone(action.request); break;
-    case 'reset': next = emptyCircuit(); break;
+    case 'reset': next = { ...emptyCircuit(), backend: present.backend }; break;
     case 'insert': {
       const gates = [...present.gates];
       gates.splice(Math.max(0, Math.min(action.index, gates.length)), 0, action.gate);
@@ -89,6 +90,7 @@ export function editorReducer(history: History, action: Edit): History {
     }
     case 'qubits': next = { ...present, numQubits: action.count as SimulationRequest['numQubits'] }; break;
     case 'shots': next = { ...present, shots: action.shots }; break;
+    case 'backend': next = { ...present, backend: action.backend }; break;
   }
   const error = validate(next);
   if (error) return { ...history, error };
@@ -101,7 +103,7 @@ const histories = new Map<string, History>();
 export function validCircuitDraft(draft: unknown): draft is SimulationRequest {
   if (!draft || typeof draft !== 'object') return false;
   const value = draft as SimulationRequest;
-  return value.backend === 'qiskit' && Array.isArray(value.gates) && value.gates.every((gate) =>
+  return isSimulatorBackend(value.backend) && Array.isArray(value.gates) && value.gates.every((gate) =>
     gate && Object.hasOwn(gateDefinitions, gate.type) && typeof gate.id === 'string' && !!gate.id.trim() && gate.id.length <= 64
     && Object.keys(gate).every((key) => ['id', 'type', 'targets', 'controls', ...(gateDefinitions[gate.type].parameterized ? ['params'] : [])].includes(key))
     && Array.isArray(gate.targets) && Array.isArray(gate.controls))

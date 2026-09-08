@@ -1,5 +1,12 @@
 # Algorithm Explorer — implementation and review
 
+> This is the historical Algorithm Explorer milestone report, integrated at
+> `a5eed03`. The local review processes/branch below describe that checkpoint,
+> not the current workspace. The [PennyLane extension](PENNYLANE_BACKEND.md)
+> adds an optional `backend` (`qiskit` by default, or `pennylane`) to both
+> build/run request variants and a simulator selector. All configurations use
+> the unchanged builders and interpretation through the shared adapter.
+
 Local review: **http://127.0.0.1:5181/algorithms**. FastAPI runs on
 `127.0.0.1:8011` with `QLP_AI_ENABLED=false`. These are local review processes,
 not a deployment. Branch: `feat/algorithm-explorer`, based on `a617215`.

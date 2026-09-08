@@ -1,7 +1,6 @@
 # Test dependency snapshot; runtime pins remain the source of truth.
 -r requirements.txt
 iniconfig==2.3.0
-packaging==26.3
 pluggy==1.6.0
 Pygments==2.21.0
 pytest==9.1.1

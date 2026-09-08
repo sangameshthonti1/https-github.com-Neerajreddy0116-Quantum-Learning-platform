@@ -108,7 +108,6 @@ export default function GatePanel(props: Props) {
         <button type="submit" disabled={!shotsValid || !shotsDirty}>Apply shots</button>
         {shotsDirty && <p className="lab-muted">Apply a whole number from 1–8192 before running.</p>}
       </form>
-      <label className="lab-field lab-simulator">Simulator<select aria-label="Simulator" value="qiskit" disabled><option value="qiskit">Qiskit Aer · local</option></select></label>
       </div>
     </section>
   </>;

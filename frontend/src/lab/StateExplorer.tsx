@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TraceStep } from '../api/types';
+import { simulatorLabels } from '../api/types';
 import { displayTolerance, formatNumber, ProbabilityBars, StatevectorTable } from './QuantumStateViews';
 import type { useStateTrace } from './useStateTrace';
 import { angleText, gateDefinitions } from './gates';
@@ -47,6 +48,7 @@ export default function StateExplorer({ trace, blocked, pane, onPane, embedded =
       <button aria-pressed={pane === 'qubit'} onClick={() => onPane('qubit')}>Qubit sphere</button>
     </div>}
     {step && snapshot && <>
+      <p className="lab-result-backend" data-testid="trace-backend">Trace from {simulatorLabels[snapshot.response.backend]} · local CPU</p>
       <div className="trace-navigation">
         <div className="lab-actions"><button onClick={() => setIndex(index - 1)} disabled={index === 0}>Previous step</button>
           <span role="status" className="trace-step-heading">Step {index} of {snapshot.response.steps.length - 1} · {stepName(step)}</span>

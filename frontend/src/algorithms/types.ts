@@ -1,10 +1,11 @@
-import type { SimulationRequest, SimulationResponse, TraceResponse } from '../api/types';
+import type { SimulationRequest, SimulationResponse, SimulatorBackend, TraceResponse } from '../api/types';
 
 export type AlgorithmId = 'deutsch-jozsa' | 'grover';
 export type OracleId = 'zero' | 'one' | 'q0' | 'not-q0' | 'q1' | 'not-q1' | 'xor' | 'xnor';
-export type AlgorithmParameters =
+// Optional for existing tab-session selections; omission means Qiskit.
+export type AlgorithmParameters = { backend?: SimulatorBackend } & (
   | { algorithm: 'deutsch-jozsa'; inputQubits: 1 | 2; oracleId: OracleId; shots: number; seedSimulator: number | null }
-  | { algorithm: 'grover'; numQubits: 1 | 2; markedItem: string; iterations: number; shots: number; seedSimulator: number | null };
+  | { algorithm: 'grover'; numQubits: 1 | 2; markedItem: string; iterations: number; shots: number; seedSimulator: number | null });
 export interface OracleDefinition {
   id: OracleId; label: string; inputQubits: 1 | 2; category: 'constant' | 'balanced';
   truthTable: { input: string; output: 0 | 1 }[];

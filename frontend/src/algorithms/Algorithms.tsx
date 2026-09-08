@@ -1,6 +1,8 @@
 import { Link, navigate } from '../app/navigation';
 import { ActionLink, Badge, PageHeading } from '../app/ui';
 import CircuitCanvas from '../lab/CircuitCanvas';
+import SimulatorSelector from '../lab/SimulatorSelector';
+import { simulatorLabels } from '../api/types';
 import QuestionCard from '../lesson/QuestionCard';
 import type { Question } from '../lesson/content';
 import { useAlgorithmCatalog, parameterKey } from './api';
@@ -39,12 +41,13 @@ function Experiment({ entry }: { entry: AlgorithmEntry }) {
   const resultKey = e.result ? `${e.result.definition.circuitDigest}:${e.result.simulation.metadata.executionTimeMs}` : '';
   return <main className="q-page algorithm-page">
     <Link className="q-text-link" href="/algorithms">← All algorithms</Link>
-    <header className="algorithm-module-header"><div><p className="q-eyebrow">ALGORITHM EXPLORER / {dj ? '01 · A GLOBAL PROPERTY' : '02 · AMPLITUDE AMPLIFICATION'}</p><h1>{entry.title}</h1><p>{dj ? 'Ask once. Let interference reveal the pattern.' : 'Make the right item more likely to appear.'}</p><div className="q-inline-meta"><Badge tone="blue">Interactive experiment</Badge><span>{dj ? '1–2 inputs + 1 helper' : '2 or 4 search items'}</span><span>Real Qiskit simulation</span></div></div><AlgorithmMotif id={entry.id} /></header>
+    <header className="algorithm-module-header"><div><p className="q-eyebrow">ALGORITHM EXPLORER / {dj ? '01 · A GLOBAL PROPERTY' : '02 · AMPLITUDE AMPLIFICATION'}</p><h1>{entry.title}</h1><p>{dj ? 'Ask once. Let interference reveal the pattern.' : 'Make the right item more likely to appear.'}</p><div className="q-inline-meta"><Badge tone="blue">Interactive experiment</Badge><span>{dj ? '1–2 inputs + 1 helper' : '2 or 4 search items'}</span><span>Real local simulation</span></div></div><AlgorithmMotif id={entry.id} /></header>
     <nav className="algorithm-jump-nav" aria-label="Algorithm learning sections"><a href="#problem">Understand</a><a href="#experiment">Build & predict</a><a href="#inspect">Run & inspect</a><a href="#understanding">Check understanding</a></nav>
     <ProblemLesson id={entry.id} />
     <section id="experiment" className="algorithm-experiment" aria-label="Configure algorithm">
       <div className="algorithm-section-label"><span>02</span><h2>Make the problem yours.</h2></div>
       <div className="algorithm-controls-grid"><div className="algorithm-parameters">
+        <SimulatorSelector value={p.backend ?? 'qiskit'} onChange={backend => e.change({ ...p, backend })} />
         <label>{dj ? 'Input register' : 'Search space'}<select aria-label={dj ? 'Input register' : 'Search space'} value={n} onChange={event => {
           const size = Number(event.target.value) as 1 | 2;
           e.change(p.algorithm === 'deutsch-jozsa' ? { ...p, inputQubits: size, oracleId: 'zero' }
@@ -66,7 +69,7 @@ function Experiment({ entry }: { entry: AlgorithmEntry }) {
     </section>
     <section className="algorithm-predict" aria-label="Predict and run"><div className="algorithm-section-label"><span>03</span><h2>Predict. Then put it to the test.</h2></div>
       <QuestionCard key={parameterKey(p)} question={options} prediction submitted={e.prediction} onSubmit={e.predict} />
-      <div className="algorithm-run-strip"><button className="q-button q-button-primary" disabled={!e.definition || e.building || e.loading || e.prediction === undefined} onClick={() => void e.run()}>{e.loading ? 'Running with Qiskit…' : 'Run algorithm'} <span aria-hidden="true">▶</span></button><p>{e.prediction === undefined ? 'Record a prediction first. “I’m not sure” is a valid starting point.' : 'Runs the circuit in Qiskit Aer and records the state after every gate.'}</p></div>
+      <div className="algorithm-run-strip"><button className="q-button q-button-primary" disabled={!e.definition || e.building || e.loading || e.prediction === undefined} onClick={() => void e.run()}>{e.loading ? `Running with ${p.backend === 'pennylane' ? 'PennyLane' : 'Qiskit'}…` : 'Run algorithm'} <span aria-hidden="true">▶</span></button><p>{e.prediction === undefined ? 'Record a prediction first. “I’m not sure” is a valid starting point.' : `Runs the circuit in ${simulatorLabels[p.backend ?? 'qiskit']} and records the state after every gate.`}</p></div>
       {e.loading && <p role="status" className="algorithm-notice">Executing this circuit and tracing every gate…</p>}
       {e.runError && <div role="alert" className="algorithm-error"><p>{e.runError}</p><p>No previous results are shown. Use Run algorithm to retry.</p></div>}
     </section>

@@ -14,6 +14,8 @@ const metadataLabels: Record<keyof SimulationResponse['metadata'], string> = {
   executionTimeMs: 'Execution time (ms)',
   qiskitVersion: 'Qiskit version',
   aerVersion: 'Aer version',
+  engine: 'Engine',
+  pennylaneVersion: 'PennyLane version',
 };
 
 function describeGate(gate: Gate): string {
@@ -126,7 +128,7 @@ function SimulationResults({ result }: { result: SimulationResponse }) {
       <section className="panel" aria-labelledby="metadata-heading">
         <h3 id="metadata-heading">Execution details</h3>
         <dl className="metadata-grid">
-          {(Object.keys(metadataLabels) as Array<keyof SimulationResponse['metadata']>).map((key) => (
+          {(Object.keys(metadataLabels) as Array<keyof SimulationResponse['metadata']>).filter(key => result.metadata[key] !== undefined).map((key) => (
             <div key={key}>
               <dt>{metadataLabels[key]}</dt>
               <dd>{result.metadata[key]}</dd>

@@ -14,9 +14,9 @@ from app.schemas.simulation import (
     ValidationErrorResponse,
     ValidationIssue,
 )
-from app.services.qiskit_simulator import SimulationExecutionError, simulate_circuit
+from app.services.simulation_errors import SimulationExecutionError
+from app.services.simulators import simulate_circuit, trace_circuit
 from app.schemas.trace import TraceResponse
-from app.services.qiskit_trace import trace_circuit
 
 logger = logging.getLogger(__name__)
 

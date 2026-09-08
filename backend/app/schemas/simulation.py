@@ -10,6 +10,7 @@ QubitCount = Annotated[StrictInt, Field(ge=1, le=3)]
 ShotCount = Annotated[StrictInt, Field(ge=1, le=8192)]
 SimulatorSeed = Annotated[StrictInt, Field(ge=0, le=4294967295)]
 Angle = Annotated[float, Field(strict=True, allow_inf_nan=False)]
+SimulatorBackend = Literal["qiskit", "pennylane"]
 
 
 class RequestModel(BaseModel):
@@ -72,7 +73,7 @@ class SimulationRequest(RequestModel):
     num_qubits: QubitCount
     gates: list[Gate] = Field(max_length=256)
     shots: ShotCount
-    backend: Literal["qiskit"]
+    backend: SimulatorBackend = "qiskit"
     seed_simulator: SimulatorSeed | None = None
 
     @model_validator(mode="after")
@@ -106,7 +107,7 @@ class ComplexAmplitude(ResponseModel):
     imag: float
 
 
-class ExecutionMetadata(ResponseModel):
+class ExecutionMetadataBase(ResponseModel):
     method: Literal["statevector"] = "statevector"
     measurement: Literal["terminal-all"] = "terminal-all"
     statevector_stage: Literal["before-measurement"] = "before-measurement"
@@ -115,18 +116,32 @@ class ExecutionMetadata(ResponseModel):
     gate_count: int = Field(ge=0)
     circuit_depth: int = Field(ge=0)
     execution_time_ms: float = Field(ge=0)
+
+
+class ExecutionMetadata(ExecutionMetadataBase):
     qiskit_version: str
     aer_version: str
 
 
+class PennyLaneExecutionMetadata(ExecutionMetadataBase):
+    engine: Literal["pennylane.default.qubit"] = "pennylane.default.qubit"
+    pennylane_version: str
+
+
 class SimulationResponse(ResponseModel):
-    backend: Literal["qiskit"] = "qiskit"
+    backend: SimulatorBackend = "qiskit"
     num_qubits: QubitCount
     probabilities: dict[str, Annotated[float, Field(ge=0)]]
     counts: dict[str, Annotated[StrictInt, Field(ge=0)]]
     statevector: list[ComplexAmplitude]
     shots: ShotCount
-    metadata: ExecutionMetadata
+    metadata: ExecutionMetadata | PennyLaneExecutionMetadata
+
+    @model_validator(mode="after")
+    def matching_engine(self) -> Self:
+        if (self.backend == "qiskit") != isinstance(self.metadata, ExecutionMetadata):
+            raise ValueError("Response backend and execution metadata must agree")
+        return self
 
 
 class ValidationIssue(BaseModel):

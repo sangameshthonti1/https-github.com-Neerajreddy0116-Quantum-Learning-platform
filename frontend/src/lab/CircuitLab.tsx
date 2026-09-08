@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Gate, SimulationRequest, SimulationResponse } from '../api/types';
 import { simulateCircuit } from '../api/client';
 import { templates } from '../templates';
@@ -9,6 +9,7 @@ import { validAngle } from './AngleField';
 import GatePanel, { GateForm } from './GatePanel';
 import GateInspector from './GateInspector';
 import ResultsPanel from './ResultsPanel';
+import SimulatorSelector from './SimulatorSelector';
 import StateExplorer from './StateExplorer';
 import BlochSphere from './BlochSphere';
 import { useStateTrace } from './useStateTrace';
@@ -61,6 +62,12 @@ export default function CircuitLab({ experiment = null, initialExploring = false
     lessonId: guided?.id ?? (legacy ? 'superposition' : null), apply: applyTutorCircuit });
 
   useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
+  // Backend changes cancel the old run before another interaction can start one.
+  // The controller identity check in run() also rejects late response bodies.
+  useLayoutEffect(() => {
+    active.current?.abort(); active.current = null;
+    setLoading(false); setError(null);
+  }, [request.backend]);
   useEffect(() => { if (!challenge && !algorithm) rememberWorkspace(experiment); }, [experiment, challenge, algorithm]);
   useEffect(() => { setExploring(initialExploring); setMobilePanel('circuit'); }, [initialExploring]);
   useEffect(() => {
@@ -133,7 +140,7 @@ export default function CircuitLab({ experiment = null, initialExploring = false
       <span className="lab-status lab-toolbar-status" data-status={(exploring ? traceStatus : status).toLowerCase()} role="status">{exploring ? `Trace ${traceStatus.toLowerCase()}` : status}</span>
       {!challenge && <label className="lab-template-label">Load template<select aria-label="Load template" value="" onChange={(event) => {
         const template = templates.find((item) => item.id === event.target.value);
-        if (template) { dispatch({ type: 'replace', request: template.request }); setSelectedId(null); chooseTool('h'); }
+        if (template) { dispatch({ type: 'replace', request: { ...template.request, backend: request.backend } }); setSelectedId(null); chooseTool('h'); }
       }}><option value="" disabled>Choose a circuit…</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.label}</option>)}</select></label>}
       <div className="lab-toolbar-actions">
         <button onClick={() => dispatch({ type: 'undo' })} disabled={!canUndo}>Undo</button>
@@ -144,6 +151,7 @@ export default function CircuitLab({ experiment = null, initialExploring = false
       </div>
       {!challenge && !algorithm && <Link className="lab-lesson-link" href={guided ? `/learn/${guided.id}` : '/learn/superposition'}>{experiment ? 'Return to lesson' : 'Learn: Superposition'}</Link>}
     </header>
+    <div className="lab-simulator-row"><SimulatorSelector value={request.backend} onChange={backend => dispatch({ type: 'backend', backend })} /></div>
     <nav className="lab-mobile-nav" aria-label="Workspace panels">
       {(['settings', 'circuit', 'results'] as const).map((panel) => <button key={panel} aria-pressed={mobilePanel === panel} data-active={mobilePanel === panel} onClick={() => { setMobilePanel(panel); if (panel !== 'circuit') setExploring(false); }}>{panel === 'settings' ? 'Gates & settings' : panel === 'circuit' ? 'Circuit' : 'Results'}</button>)}
     </nav>
