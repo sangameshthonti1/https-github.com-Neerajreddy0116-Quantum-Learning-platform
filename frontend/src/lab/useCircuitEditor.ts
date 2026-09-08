@@ -108,10 +108,11 @@ function restoreDraft(key: string): SimulationRequest | undefined {
     if (validCircuitDraft(draft)) return draft;
   } catch { /* Malformed/unavailable storage must never prevent opening the Lab. */ }
 }
-export function useCircuitEditor(initialRequest?: SimulationRequest, workspaceKey?: string) {
+export function useCircuitEditor(initialRequest?: SimulationRequest, workspaceKey?: string, preferSavedDraft = false) {
   const [history, dispatch] = useReducer(editorReducer, undefined, () => {
     if (workspaceKey && histories.has(workspaceKey)) return histories.get(workspaceKey)!;
-    const request = initialRequest ?? (workspaceKey ? restoreDraft(workspaceKey) : undefined);
+    const saved = workspaceKey ? restoreDraft(workspaceKey) : undefined;
+    const request = preferSavedDraft ? saved ?? initialRequest : initialRequest ?? saved;
     return { past: [], present: request ? structuredClone(request) : emptyCircuit(), future: [], error: null };
   });
   useLayoutEffect(() => {

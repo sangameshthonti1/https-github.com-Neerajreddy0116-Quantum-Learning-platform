@@ -9,7 +9,7 @@ const items: { href: string; label: string; icon: IconName; upcoming?: boolean }
   { href: '/learn', label: 'Learn', icon: 'learn' },
   { href: '/lab', label: 'Circuit Lab', icon: 'lab' },
   { href: '/algorithms', label: 'Algorithms', icon: 'algorithms', upcoming: true },
-  { href: '/challenges', label: 'Challenges', icon: 'challenges', upcoming: true },
+  { href: '/challenges', label: 'Challenges', icon: 'challenges' },
   { href: '/progress', label: 'Progress', icon: 'progress' },
 ];
 function Navigation({ path, onNavigate }: { path: string; onNavigate?: () => void }) {
@@ -26,14 +26,14 @@ function initialCollapsed() {
   try { return localStorage.getItem('qlp-navigation-collapsed') === 'true'; } catch { return false; }
 }
 export default function AppShell({ path, children }: { path: string; children: ReactNode }) {
-  const focused = path.startsWith('/lab') || path.startsWith('/learn/');
+  const focused = path.startsWith('/lab') || path.startsWith('/learn/') || path.startsWith('/challenges/');
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [expanded, setExpanded] = useState(false);
   const drawer = useRef<HTMLDialogElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const lessonId = path.slice('/learn/'.length);
-  const title = path.startsWith('/learn/') && isFoundationId(lessonId) ? foundations[lessonId].title : path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
+  const title = path.startsWith('/challenges/') ? 'Challenge workspace' : path.startsWith('/learn/') && isFoundationId(lessonId) ? foundations[lessonId].title : path === '/learn/superposition' ? 'Superposition & the Hadamard gate' : path === '/lab/states' ? 'State Explorer' : items.find((item) => item.href === path)?.label ?? (path === '/dashboard' ? 'Dashboard' : 'Page not found');
   useEffect(() => {
     document.title = `${title} · Quantum Learning`;
     setExpanded(false);
@@ -72,7 +72,7 @@ export default function AppShell({ path, children }: { path: string; children: R
         <div className="q-breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong>{title}</strong></div>
         <span className="q-session-label"><span /> This tab’s session</span>
         {focused && <span className="q-focus-label">Focus workspace</span>}
-        {focused && <TutorLauncher />}
+        {focused && !path.startsWith('/challenges/') && <TutorLauncher />}
       </header>
       <div id="page-content" className="q-page-content" tabIndex={-1} ref={content}>{children}</div>
     </div>

@@ -7,6 +7,7 @@ import './app/design-system.css';
 import { TutorProvider } from './tutor/TutorProvider';
 
 const CircuitLab = lazy(() => import('./lab/CircuitLab'));
+const Challenges = lazy(() => import('./challenges/Challenges'));
 const SuperpositionLesson = lazy(() => import('./lesson/SuperpositionLesson'));
 const FoundationLesson = lazy(() => import('./lesson/foundations/FoundationLesson'));
 const Dashboard = lazy(() => import('./app/Pages').then((pages) => ({ default: pages.Dashboard })));
@@ -37,6 +38,7 @@ export default function App() {
           : isFoundationId(lessonId) ? <FoundationLesson key={lessonId} id={lessonId} />
           : path === '/lab' || path === '/lab/states' ? <CircuitLab key={experiment ?? 'free'} experiment={experiment} initialExploring={path === '/lab/states'} />
             : path === '/progress' ? <Progress />
-              : path === '/algorithms' || path === '/challenges' ? <Upcoming kind={path.slice(1) as 'algorithms' | 'challenges'} /> : <NotFound />}
+              : path === '/challenges' || path.startsWith('/challenges/') ? <Challenges key={path} id={path === '/challenges' ? undefined : path.slice('/challenges/'.length)} />
+                : path === '/algorithms' ? <Upcoming kind="algorithms" /> : <NotFound />}
   </Suspense></AppShell></TutorProvider>;
 }

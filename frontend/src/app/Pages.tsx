@@ -3,6 +3,7 @@ import { availableLessonCount, curriculum, useCurriculumProgress } from './curri
 import { Link } from './navigation';
 import { ActionLink, Badge, EmptyState, Icon, PageHeading } from './ui';
 import QuantumVisual from './QuantumVisual';
+import ChallengeProgressSummary from '../challenges/ChallengeProgressSummary';
 
 function ProgressOverview() {
   const lessons = useCurriculumProgress();
@@ -34,6 +35,7 @@ export function Dashboard() {
         <Link href="/lab/states" className="q-tool-card q-tool-explorer"><div className="q-mini-sphere" aria-hidden="true"><Icon name="sphere" size={80} /><span>|ψ⟩</span></div><div><span className="q-overline">LOOK INSIDE</span><h3>State Explorer <Icon name="arrow" /></h3><p>Follow your circuit gate by gate. See amplitudes, probabilities, and the Bloch sphere.</p><span className="q-tool-foot">Part of your Circuit Lab <span>Explore states ↗</span></span></div></Link></div>
     </section>
     <section className="q-path-strip"><span className="q-path-number">01—04</span><div><p className="q-eyebrow">THE FOUNDATIONS PATH</p><h2>Start small. Think quantum.</h2><p>Measurement → Superposition → Phase and interference → Entanglement. Four complete lessons, eight experiments you build.</p></div><ActionLink href="/learn" secondary>Explore curriculum</ActionLink></section>
+    <ChallengeProgressSummary />
     <footer className="q-page-footer"><span>Learn by predicting, building, and observing.</span><span>Powered by local Qiskit simulation</span></footer>
   </main>;
 }
@@ -59,7 +61,8 @@ export function Progress() {
       <p>{lesson.experiments} of {lesson.experimentCount} experiments collected · {lesson.completed} of {lesson.sections.length} sections completed</p>
       <ol className="q-section-records">{lesson.sections.map((section, index) => <li key={section.title}><span>{String(index + 1).padStart(2, '0')}</span><span>{section.title}</span><Badge tone={section.status === 'Completed' ? 'success' : 'neutral'}>{section.status}</Badge></li>)}</ol><ActionLink href={lesson.href!}>{lesson.action}</ActionLink>
     </section>)}</div></div>
-    <section className="q-session-explanation"><h2>What counts as progress?</h2><p>Each new lesson requires its concept and observation checks, all verified experiments, and a perfect quiz attempt. Superposition keeps its existing rule: both experiments and a perfect quiz attempt, with reading acknowledgements tracked separately. Browsing alone never completes an activity. Each lesson keeps its own predictions, attempts, drafts, and evidence.</p><p>Closing this tab normally ends the session. Browser session restoration may retain it. If storage is unavailable, progress lasts only while this app stays open.</p></section>
+    <ChallengeProgressSummary detailed />
+    <section className="q-session-explanation"><h2>What counts as progress?</h2><p>Each new lesson requires its concept and observation checks, all verified experiments, and a perfect quiz attempt. Superposition keeps its existing rule: both experiments and a perfect quiz attempt, with reading acknowledgements tracked separately. Browsing alone never completes an activity. Each lesson keeps its own predictions, attempts, drafts, and evidence.</p><p>Challenges require a simulator-verified target match and all stated constraints. Submissions count each grading request, including retries; only current, verified results update best scores and completion. Hints are free. Earlier completion remains part of your record when you experiment further.</p><p>Closing this tab normally ends the session. Browser session restoration may retain it. If storage is unavailable, progress lasts only while this app stays open.</p></section>
   </main>;
 }
 export function Upcoming({ kind }: { kind: 'algorithms' | 'challenges' }) {
