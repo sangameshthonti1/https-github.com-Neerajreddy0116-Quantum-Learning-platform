@@ -15,6 +15,8 @@ from app.schemas.simulation import (
     ValidationIssue,
 )
 from app.services.qiskit_simulator import SimulationExecutionError, simulate_circuit
+from app.schemas.trace import TraceResponse
+from app.services.qiskit_trace import trace_circuit
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,26 @@ def simulate(request: SimulationRequest) -> SimulationResponse | JSONResponse:
         return simulate_circuit(request)
     except SimulationExecutionError:
         logger.exception("Local quantum simulation failed")
+        return JSONResponse(
+            status_code=500, content=ExecutionErrorResponse().model_dump()
+        )
+
+
+@router.post(
+    "/simulate/trace",
+    response_model=TraceResponse,
+    summary="Trace the initial state and the state after every gate",
+    responses={
+        422: {"model": ValidationErrorResponse},
+        500: {"model": ExecutionErrorResponse},
+    },
+)
+def trace(request: SimulationRequest) -> TraceResponse | JSONResponse:
+    # Uses the same validated request and worker-pool boundary as simulation.
+    try:
+        return trace_circuit(request)
+    except SimulationExecutionError:
+        logger.exception("Local quantum state tracing failed")
         return JSONResponse(
             status_code=500, content=ExecutionErrorResponse().model_dump()
         )

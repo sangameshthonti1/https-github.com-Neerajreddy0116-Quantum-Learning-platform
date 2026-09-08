@@ -77,6 +77,7 @@ Expected HTTP status: **200**, with exactly:
 | --- | --- |
 | `GET /api/health` | Process liveness; no external dependencies are probed |
 | `POST /api/simulate` | Real ideal-state simulation and sampled terminal measurements |
+| `POST /api/simulate/trace` | Initial and per-gate states, probabilities, reduced density matrices and Bloch vectors |
 | `GET /` | HTTP 307 redirect to `/docs` |
 | `GET /docs` | Automatic Swagger UI |
 | `GET /openapi.json` | Generated OpenAPI schema |
@@ -103,6 +104,29 @@ measurement. Explicit measurement gates are rejected, not silently removed.
 Qubit 0 is the rightmost bit in labels. See [the complete API contract](../docs/API_CONTRACT.md)
 for schemas, limits, bit ordering, measurement semantics, metadata, and errors.
 
+## Trace a Bell state
+
+Send the identical request to the dedicated trace endpoint:
+
+```sh
+curl --fail-with-body --silent --show-error --noproxy '*' \
+  -H 'Content-Type: application/json' \
+  --data '{"numQubits":2,"gates":[{"id":"g1","type":"h","targets":[0],"controls":[]},{"id":"g2","type":"cx","targets":[1],"controls":[0]}],"shots":1024,"backend":"qiskit","seedSimulator":42}' \
+  http://127.0.0.1:8000/api/simulate/trace
+```
+
+The response has three ordered steps: initial `|00⟩`, H on q0, and CX q0→q1.
+Each step contains a full pre-measurement statevector, dense ideal probabilities,
+and each qubit's reduced density matrix and Bloch vector. The final probabilities
+are approximately 50% each on `00`/`11`, and both reduced qubits are maximally
+mixed (`I/2`) with zero-length Bloch vectors. Qiskit's `Statevector.evolve` and
+`partial_trace` compute these states; no counts or mid-circuit measurements are
+used. Shots and seed are validated but do not affect the trace. Native global
+phase is retained; physical comparisons should be phase-invariant.
+
+See [the trace contract](../docs/API_CONTRACT.md#post-apisimulatetrace) for the
+complete schema, conventions, numerical tolerance, bounds, and error envelopes.
+
 ## Configuration and CORS
 
 Settings are validated at application creation. OS environment variables override
@@ -125,7 +149,7 @@ QLP_CORS_ORIGINS=["http://localhost:5173", "http://127.0.0.1:5173"]
 - `localhost` and `127.0.0.1`, different ports, and different schemes are distinct origins.
 - Wildcards, credentials, non-root paths, queries, fragments, and malformed values
   fail validation at startup. A trailing root slash and default ports are normalized.
-- `/api/simulate` permits `POST` preflights with `Content-Type` for JSON bodies;
+- `/api/simulate` and `/api/simulate/trace` permit `POST` preflights with `Content-Type` for JSON bodies;
   other paths retain `GET`-only permissions. Credentials and Authorization are
   disabled. Extend permissions deliberately when real endpoints need them.
 - Disallowed preflights return HTTP 400 when CORS is configured. Ordinary requests
@@ -147,6 +171,11 @@ JSON serialization, and seeded sampling. They also test request limits/errors,
 execution-failure handling, and path-specific CORS. Statistical checks use
 tolerances rather than hardcoded stochastic counts.
 
+Trace tests additionally check all intermediate Bell states, reduced mixed states,
+both CX directions, three-qubit spectators and GHZ states, complex Bloch-Y signs,
+global-phase equivalence, every prefix against real Aer, all 257 snapshots at
+the gate limit, and failure handling for invalid or nonfinite engine output.
+
 Tests isolate settings from the developer's `.env` and use an in-process client,
 so no running server, external service, or credentials are needed. The live
 `curl` commands above separately verify Uvicorn startup and real HTTP access.
@@ -167,7 +196,9 @@ backend/
 │   │   ├── config.py          # Validated environment settings
 │   │   └── cors.py            # Path-specific CORS method permissions
 │   ├── schemas/simulation.py  # Backend-independent request/response models
+│   ├── schemas/trace.py       # Per-step trace and reduced-state response models
 │   ├── services/qiskit_simulator.py # Circuit construction and real Aer execution
+│   ├── services/qiskit_trace.py # Qiskit state evolution and partial traces
 │   └── api/
 │       ├── router.py           # /api route composition
 │       └── routes/

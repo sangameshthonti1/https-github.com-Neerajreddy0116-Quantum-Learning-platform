@@ -1,4 +1,4 @@
-# Quantum Learning API contract — first simulation milestone
+# Quantum Learning API contract — simulation and state tracing
 
 This document defines the local HTTP boundary independently of Qiskit Python
 objects. The running API also publishes its schema at `GET /openapi.json` and
@@ -191,10 +191,158 @@ If local simulation fails, no partial or fabricated result is returned:
 Detailed exceptions are logged locally, not exposed in the HTTP response.
 Validation is performed before invoking the simulator.
 
+## POST /api/simulate/trace
+
+Returns the initial state and the state **after every input gate**, in request
+array order. Uses Qiskit's `Statevector.evolve` with its native H/X/Z/CX
+instructions and `partial_trace` for reduced states. There is no sampled-count
+reconstruction, example-state lookup, circuit optimization, or gate fusion.
+The existing `POST /api/simulate` request and response contracts are unchanged.
+
+### Request and measurement semantics
+
+Send the **same `SimulationRequest` JSON** described above. The endpoint reuses
+the same model and all of its strict validation: 1–3 qubits, 0–256 gates,
+unique IDs, legal/disjoint target and control indices, 1–8192 shots, backend
+`"qiskit"`, and the optional seed range. Unsupported gates, explicit measurements
+(including terminal measurement instructions), and unknown fields remain errors.
+
+`shots` is still required and validated; `seedSimulator` is still optional and
+validated. Neither changes the deterministic ideal trace. No measurements or
+sampling are performed by this endpoint, so it returns **no counts**, no shot
+total, and no effective random seed. Use `/api/simulate` for sampled terminal
+measurements. `measurement: "terminal-all"` describes the shared circuit
+measurement convention, while `samplingPerformed: false` makes the trace-only
+execution explicit. Every snapshot, including the last, is **before measurement**.
+
+### HTTP 200 response schema
+
+All fields below are present. Public keys use camelCase. Complex values use
+the existing `{ "real": number, "imag": number }` representation, including
+every entry of a reduced density matrix.
+
+| Field | JSON type | Meaning |
+| --- | --- | --- |
+| `backend` | `"qiskit"` | Local Qiskit engine family |
+| `numQubits` | integer | Requested qubit count |
+| `basisOrder` | string array | All `2^numQubits` basis labels in ascending integer order |
+| `steps` | array of trace steps | Exactly `gates.length + 1` entries, at most 257 |
+| `metadata` | object | Trace conventions and execution information below |
+
+Each trace step contains:
+
+| Field | JSON type | Meaning |
+| --- | --- | --- |
+| `index` | integer | 0 for the initial state, then 1 through `gates.length`; this is not circuit depth |
+| `gate` | gate object or `null` | `null` at step 0; otherwise the full `gates[index - 1]` object, including `id`, `type`, `targets`, and `controls` |
+| `statevector` | complex-value array | Full pure state of all qubits, indexed by `basisOrder` |
+| `probabilities` | object: basis label → number | Dense ideal probabilities `real² + imag²`, including zero-probability labels |
+| `qubits` | reduced-state array | Exactly `numQubits` entries, ordered q0, q1, q2 as applicable |
+
+Each reduced-state entry contains:
+
+| Field | JSON type | Meaning |
+| --- | --- | --- |
+| `qubit` | integer | The retained qubit's original request index |
+| `densityMatrix` | 2×2 array of complex values | Row-major matrix in local basis `["0", "1"]` |
+| `blochVector` | `{ "x": number, "y": number, "z": number }` | Pauli expectation values of the reduced state |
+
+Metadata fields:
+
+| Field | JSON type/value | Meaning |
+| --- | --- | --- |
+| `engine` | `"qiskit.quantum_info.Statevector"` | Actual evolution implementation; the trace does not run Aer shots |
+| `method` | `"statevector"` | Ideal unitary state evolution |
+| `measurement` | `"terminal-all"` | Shared circuit convention, not a measurement taken during tracing |
+| `statevectorStage` | `"before-measurement"` | Stage of every returned snapshot |
+| `samplingPerformed` | `false` | No shot sampling in this endpoint |
+| `bitOrder` | `"q[n-1]...q[0]"` | Qubit 0 is the least-significant bit |
+| `reducedBasisOrder` | `["0", "1"]` | Row/column order of each 2×2 matrix |
+| `globalPhase` | `"qiskit-native"` | Raw Qiskit phase retained without independently rephasing snapshots |
+| `gateCount` | integer, 0–256 | Number of input gates |
+| `stepCount` | integer, 1–257 | Includes the initial state |
+| `executionTimeMs` | finite nonnegative number | Evolution and snapshot extraction time; excludes HTTP queuing/serialization |
+| `qiskitVersion` | string | Actual installed Qiskit version |
+
+### Indexing, reduced states, normalization, and global phase
+
+For every step, `statevector[i]` corresponds to `basisOrder[i]`, namely the
+integer `i` padded to `numQubits` binary digits. For two qubits the order is
+`00, 01, 10, 11`; X on q0 gives `01`. The order of keys in probability objects
+is not significant. Reduced-state array order is ascending **qubit index**, not
+the left-to-right order of the characters in a basis label.
+
+For qubit q, the service traces out **all other** qubits from `|ψ⟩⟨ψ|`:
+`ρq = Tr(other qubits)(|ψ⟩⟨ψ|)`. With `ρ01` denoting row 0, column 1,
+`x = 2 Re(ρ01)`, `y = -2 Im(ρ01)`, and `z = ρ00 - ρ11`.
+Equivalently, `ρq = (I + xX + yY + zZ)/2`. A mixed reduced state belongs inside
+the Bloch ball; it must not be normalized to a unit-length vector or replaced
+with an independent pure qubit. Reduced states alone do not encode entanglement
+correlations; the full statevector remains available.
+
+The engine checks finite values and normalization of each statevector, and
+finite, Hermitian, positive-semidefinite, trace-one reduced density matrices,
+using absolute tolerance `1e-12`. Response models also reject NaN and Infinity.
+Probabilities sum to one and Bloch lengths are at most one within numerical
+tolerance. Results retain double-precision residuals, including signed zero;
+they are not rounded, clipped, renormalized, or projected onto pure states.
+“Exact ideal” means state-derived, not sampled, symbolic, or arbitrary precision.
+
+The initial state's amplitude at index 0 is positive 1. Thereafter, Qiskit's
+native gate phases are preserved. States `ψ` and `exp(iφ) ψ` are physically
+equivalent even if their raw amplitudes differ. Compare states using their
+projectors `|ψ⟩⟨ψ|`, fidelity, or `Statevector.equiv` within tolerance; do not use
+elementwise amplitude equality as physical equality. Probabilities, reduced
+matrices, and Bloch vectors are invariant under global phase. Relative phase
+is preserved: H→Z→H yields `|1⟩`, not `|0⟩`.
+
+### Bell trace example
+
+POST the two-qubit Bell request shown in the simulation section to
+`/api/simulate/trace`. The live Qiskit 2.5.2 response used
+`a = 0.7071067811865475` and `p = 0.4999999999999999`:
+
+| Step | `gate` | Statevector, basis `00,01,10,11` | Probabilities, same order | q0 Bloch | q1 Bloch |
+| --- | --- | --- | --- | --- | --- |
+| 0 | `null` | `[1,0,0,0]` | `[1,0,0,0]` | `(0,0,1)` | `(0,0,1)` |
+| 1 | `g1`: H on q0 | `[a,a,0,0]` | `[p,p,0,0]` | `(≈1,0,0)` | `(0,0,≈1)` |
+| 2 | `g2`: CX q0→q1 | `[a,0,0,a]` | `[p,0,0,p]` | `(0,0,0)` | `(0,0,0)` |
+
+All these amplitudes have zero imaginary part. Step 1's nonzero Bloch components
+were `0.9999999999999998`. At step 2, **each** qubit has the following reduced
+matrix and Bloch vector (the entry for q1 differs only in `qubit`):
+
+```json
+{
+  "qubit": 0,
+  "densityMatrix": [
+    [{"real": 0.4999999999999999, "imag": 0.0}, {"real": 0.0, "imag": 0.0}],
+    [{"real": 0.0, "imag": 0.0}, {"real": 0.4999999999999999, "imag": 0.0}]
+  ],
+  "blochVector": {"x": 0.0, "y": -0.0, "z": 0.0}
+}
+```
+
+These are maximally mixed reduced qubits (`ρ ≈ I/2`, purity `Tr(ρ²) ≈ 1/2`),
+even though the full Bell state is pure. Values above are an observed example,
+not a promise of bit-for-bit equality across Qiskit releases or platforms.
+
+### Errors and bounds
+
+HTTP 422 uses the same sanitized validation envelope as `/api/simulate` and
+validation completes before state evolution. Engine or numerical failures use
+the same HTTP 500 `simulation_failed` envelope. No partial trace is returned on
+failure, and private engine details remain in local logs only.
+
+At most 257 snapshots are produced; each has at most 8 complex amplitudes,
+8 probabilities, and 3 reduced 2×2 matrices. Evolution proceeds once per gate;
+it does not resimulate every prefix or loop over shots. This endpoint adds no
+mid-circuit measurements, new gate types, or frontend visualization.
+
 ## CORS and local operational limits
 
 `QLP_CORS_ORIGINS` remains an explicit allowlist, empty by default. Only
-`/api/simulate` permits POST preflights with `Content-Type`; health/docs retain
+`/api/simulate` and `/api/simulate/trace` permit POST preflights with `Content-Type`; health/docs retain
 GET-only CORS permissions. Credentials and Authorization are not enabled.
 CORS is not authentication and does not prevent execution by non-browser clients.
 
@@ -209,6 +357,8 @@ this local milestone. Those protections are required before public exposure.
 - [Qiskit bit ordering](https://quantum.cloud.ibm.com/docs/en/guides/bit-ordering)
 - [AerSimulator API](https://qiskit.github.io/qiskit-aer/stubs/qiskit_aer.AerSimulator.html)
 - [SaveStatevector API](https://qiskit.github.io/qiskit-aer/stubs/qiskit_aer.library.SaveStatevector.html)
+- [Statevector evolution and phase equivalence](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.quantum_info.Statevector)
+- [Qiskit partial trace](https://quantum.cloud.ibm.com/docs/en/api/qiskit/quantum_info#partial_trace)
 
 The implementation uses `qiskit.QuantumCircuit`, `qiskit.transpile`,
 `qiskit_aer.AerSimulator`, and `qiskit_aer.library.SaveStatevector` with

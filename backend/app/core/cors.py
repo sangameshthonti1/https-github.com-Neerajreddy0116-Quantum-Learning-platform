@@ -25,7 +25,7 @@ class ApiCORSMiddleware:
         # Adding a write endpoint must not grant POST preflights to health/docs.
         middleware = (
             self.simulation
-            if scope["type"] == "http" and scope["path"] == "/api/simulate"
+            if scope["type"] == "http" and scope["path"] in {"/api/simulate", "/api/simulate/trace"}
             else self.read_only
         )
         await middleware(scope, receive, send)
