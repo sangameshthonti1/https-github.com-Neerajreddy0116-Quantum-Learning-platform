@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import type { SimulationRequest, SimulationResponse } from '../api/types';
+import { formatNumber, ProbabilityBars, StatevectorTable } from './QuantumStateViews';
 
 export interface ResultsPanelProps {
   request: SimulationRequest;
@@ -16,12 +17,6 @@ const tabs = [
 ] as const;
 
 type ResultTab = typeof tabs[number]['key'];
-
-function formatNumber(value: number) {
-  return value !== 0 && Math.abs(value) < 0.0001
-    ? value.toExponential(4)
-    : value.toFixed(4);
-}
 
 function circuitSummary(request: SimulationRequest) {
   return `${request.numQubits} qubits · ${request.gates.length} gates · ${request.shots.toLocaleString()} shots`;
@@ -114,14 +109,7 @@ export default function ResultsPanel({ request, result, stale, loading, error }:
               {tab.key === 'probabilities' && (
                 <>
                   <p className="lab-muted">Ideal probabilities from the pre-measurement state, not estimated from shots.</p>
-                  <ul className="lab-probability-list">
-                    {Object.entries(response.probabilities).sort(([a], [b]) => a.localeCompare(b)).map(([label, probability]) => (
-                      <li key={label} data-testid={`lab-probability-${label}`} title={`Probability: ${probability}`}>
-                        <div className="lab-bar-label"><code>|{label}⟩</code><span>{formatNumber(probability)} <small>({formatNumber(probability * 100)}%)</small></span></div>
-                        <div className="lab-bar-track" aria-hidden="true"><span style={{ width: `${Math.min(1, Math.max(0, probability)) * 100}%` }} /></div>
-                      </li>
-                    ))}
-                  </ul>
+                  <ProbabilityBars probabilities={response.probabilities} />
                 </>
               )}
               {tab.key === 'counts' && (
@@ -140,20 +128,7 @@ export default function ResultsPanel({ request, result, stale, loading, error }:
               {tab.key === 'statevector' && (
                 <>
                   <p className="lab-muted">Complex amplitudes before measurement. Probability = real² + imaginary².</p>
-                  <div className="lab-table-scroll" role="region" aria-label="Statevector amplitudes" tabIndex={0}>
-                    <table className="lab-statevector-table">
-                      <thead><tr><th scope="col">Basis</th><th scope="col">Real</th><th scope="col">Imaginary</th></tr></thead>
-                      <tbody>
-                        {response.statevector.map((amplitude, index) => (
-                          <tr key={index}>
-                            <th scope="row"><code>|{index.toString(2).padStart(response.numQubits, '0')}⟩</code></th>
-                            <td title={String(amplitude.real)}>{formatNumber(amplitude.real)}</td>
-                            <td title={String(amplitude.imag)}>{formatNumber(amplitude.imag)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatevectorTable statevector={response.statevector} basis={response.statevector.map((_, i) => i.toString(2).padStart(response.numQubits, '0'))} />
                 </>
               )}
             </div>

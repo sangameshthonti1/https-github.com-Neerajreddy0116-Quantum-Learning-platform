@@ -6,11 +6,18 @@ import CircuitCanvas from './CircuitCanvas';
 import GatePanel, { GateForm } from './GatePanel';
 import GateInspector from './GateInspector';
 import ResultsPanel from './ResultsPanel';
+import StateExplorer from './StateExplorer';
+import BlochSphere from './BlochSphere';
+import { useStateTrace } from './useStateTrace';
 import { circuitKey, useCircuitEditor } from './useCircuitEditor';
 import './lab.css';
+import './explorer.css';
 
 export default function CircuitLab() {
   const { request, error: editError, dispatch, canUndo, canRedo } = useCircuitEditor();
+  const trace = useStateTrace(request);
+  const [exploring, setExploring] = useState(false);
+  const [explorerPane, setExplorerPane] = useState<'joint' | 'qubit'>('joint');
   const [tool, setTool] = useState<Gate['type']>('h');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragTool, setDragTool] = useState<Gate['type'] | null>(null);
@@ -26,15 +33,18 @@ export default function CircuitLab() {
   const selected = request.gates.find((gate) => gate.id === selectedId);
   const stale = result !== null && circuitKey(request) !== circuitKey(result.request);
   const status = error ? 'Error' : result ? stale ? 'Stale' : 'Current' : 'Idle';
+  const traceStatus = trace.loading ? 'Tracing' : trace.error ? 'Error' : trace.stale || trace.cancelled ? 'Stale' : trace.step ? 'Current' : 'Idle';
 
   useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
   // Pending placement belongs to a particular circuit revision, never an undone one.
   useEffect(() => { setPendingCX(null); setPlacementError(null); }, [request]);
 
   function chooseTool(next: Gate['type']) {
+    setExploring(false);
     setTool(next); setSelectedId(null); setPendingCX(null); setPlacementError(null);
   }
   function addGate(gate: Gate, index: number) {
+    setExploring(false);
     dispatch({ type: 'insert', gate, index }); setSelectedId(gate.id); setPendingCX(null); setMobilePanel('circuit');
   }
   function deselect() {
@@ -89,7 +99,7 @@ export default function CircuitLab() {
     <header className="lab-toolbar">
       <a className="lab-brand" href="/" aria-label="Circuit Lab home"><span>q</span></a>
       <div><p className="lab-eyebrow">QUANTUM LEARNING</p><h1>Circuit Lab</h1></div>
-      <span className="lab-status lab-toolbar-status" data-status={status.toLowerCase()} role="status">{status}</span>
+      <span className="lab-status lab-toolbar-status" data-status={(exploring ? traceStatus : status).toLowerCase()} role="status">{exploring ? `Trace ${traceStatus.toLowerCase()}` : status}</span>
       <label className="lab-template-label">Load template<select aria-label="Load template" value="" onChange={(event) => {
         const template = templates.find((item) => item.id === event.target.value);
         if (template) { dispatch({ type: 'replace', request: template.request }); setSelectedId(null); chooseTool('h'); }
@@ -98,14 +108,15 @@ export default function CircuitLab() {
         <button onClick={() => dispatch({ type: 'undo' })} disabled={!canUndo}>Undo</button>
         <button onClick={() => dispatch({ type: 'redo' })} disabled={!canRedo}>Redo</button>
         <button onClick={() => { dispatch({ type: 'reset' }); setSelectedId(null); chooseTool('h'); }} disabled={!request.gates.length && request.numQubits === 2 && request.shots === 1024}>Reset</button>
-        <button className="lab-primary" onClick={() => { void run(); setMobilePanel('results'); }} disabled={loading || shotsPending || pendingCX !== null} aria-label="Run Simulation">{loading ? 'Running…' : 'Run Simulation'} <span aria-hidden="true">▶</span></button>
+        <button onClick={() => { setExploring(true); setSelectedId(null); setMobilePanel('circuit'); void trace.run(); }} disabled={trace.loading || shotsPending || pendingCX !== null}>Explore steps</button>
+        <button className="lab-primary" onClick={() => { void run(); setExploring(false); setMobilePanel('results'); }} disabled={loading || shotsPending || pendingCX !== null} aria-label="Run Simulation">{loading ? 'Running…' : 'Run Simulation'} <span aria-hidden="true">▶</span></button>
       </div>
       <a className="lab-test-link" href="/circuit-test">Circuit Test ↗</a>
     </header>
     <nav className="lab-mobile-nav" aria-label="Workspace panels">
-      {(['settings', 'circuit', 'results'] as const).map((panel) => <button key={panel} aria-pressed={mobilePanel === panel} data-active={mobilePanel === panel} onClick={() => setMobilePanel(panel)}>{panel === 'settings' ? 'Gates & settings' : panel === 'circuit' ? 'Circuit' : 'Results'}</button>)}
+      {(['settings', 'circuit', 'results'] as const).map((panel) => <button key={panel} aria-pressed={mobilePanel === panel} data-active={mobilePanel === panel} onClick={() => { setMobilePanel(panel); if (panel !== 'circuit') setExploring(false); }}>{panel === 'settings' ? 'Gates & settings' : panel === 'circuit' ? 'Circuit' : 'Results'}</button>)}
     </nav>
-    <div className="lab-layout" data-mobile-panel={mobilePanel}>
+    <div className="lab-layout" data-mobile-panel={mobilePanel} data-exploring={exploring} data-explorer-pane={explorerPane}>
       <aside className="lab-settings lab-panel" aria-label="Gates and settings">
         <GatePanel request={request} tool={tool} selected={selected} onTool={chooseTool}
           onQubits={(count) => { dispatch({ type: 'qubits', count }); if (count === 1) chooseTool('h'); }}
@@ -113,9 +124,15 @@ export default function CircuitLab() {
           onDrag={setDragTool} />
       </aside>
       <section className="lab-workspace" ref={workspace}>
+        <div className="workspace-modes" aria-label="Workspace mode">
+          <button aria-pressed={!exploring} onClick={() => setExploring(false)}>Circuit editor</button>
+          <button aria-pressed={exploring} onClick={() => { setExploring(true); setSelectedId(null); }}>State Explorer</button>
+        </div>
         {(editError || placementError) && <p role="alert" className="lab-notice">{placementError ?? editError}</p>}
         <CircuitCanvas request={request} selectedId={selected?.id ?? null} tool={tool} pendingCX={pendingCX} onCell={cell} dragTool={dragTool} onDrop={drop}
-          onSelect={(id) => { setSelectedId(id); setPendingCX(null); setPlacementError(null); }} onDeselect={deselect} onCancel={() => { setPendingCX(null); setPlacementError(null); }} />
+          traceStep={exploring ? trace.step : null}
+          onSelect={(id) => { setExploring(false); setSelectedId(id); setPendingCX(null); setPlacementError(null); }} onDeselect={deselect} onCancel={() => { setPendingCX(null); setPlacementError(null); }} />
+        <div hidden={exploring}>
         {selected ? <GateInspector request={request} selected={selected}
           onSave={(gate) => dispatch({ type: 'update', gate })}
           onDelete={() => { dispatch({ type: 'delete', id: selected.id }); deselect(); }}
@@ -130,8 +147,13 @@ export default function CircuitLab() {
           <p>Keyboard: Tab to a palette button or wire cell, then Enter or Space to activate. The form provides direct qubit and insertion-position selection.</p>
           <p>All qubits start in |0⟩ and are measured at the end. Gates execute left to right, one operation per step. Maximum 256 gates.</p>
         </details>
+        </div>
+        {exploring && <StateExplorer trace={trace} blocked={shotsPending || pendingCX !== null} pane={explorerPane} onPane={setExplorerPane} />}
       </section>
-      <aside className="lab-results lab-panel"><ResultsPanel request={request} result={result} stale={stale} loading={loading} error={error} /></aside>
+      <aside className="lab-results lab-panel">
+        {exploring && <><BlochSphere step={trace.step} /><button className="explorer-final-results" onClick={() => { setExploring(false); setMobilePanel('results'); }}>View final simulation results</button></>}
+        <div hidden={exploring}><ResultsPanel request={request} result={result} stale={stale} loading={loading} error={error} /></div>
+      </aside>
     </div>
     <footer className="lab-footer"><span>Quantum Learning · Circuit Lab</span><span>Session only · last 100 edits undoable</span></footer>
   </main>;

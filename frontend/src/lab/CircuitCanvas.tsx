@@ -1,5 +1,5 @@
-import { useId, useState } from 'react';
-import type { Gate, SimulationRequest } from '../api/types';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { Gate, SimulationRequest, TraceStep } from '../api/types';
 
 export interface CircuitCanvasProps {
   request: SimulationRequest;
@@ -12,13 +12,20 @@ export interface CircuitCanvasProps {
   onDeselect: () => void;
   dragTool: Gate['type'] | null;
   onDrop: (type: Gate['type'], qubit: number, index: number) => void;
+  traceStep: TraceStep | null;
 }
 
 export default function CircuitCanvas({
-  request, selectedId, tool, pendingCX, onCell, onSelect, onCancel, onDeselect, dragTool, onDrop,
+  request, selectedId, tool, pendingCX, onCell, onSelect, onCancel, onDeselect, dragTool, onDrop, traceStep,
 }: CircuitCanvasProps) {
   const instructionsId = useId();
   const [dropCell, setDropCell] = useState<string | null>(null);
+  const scroll = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const container = scroll.current;
+    const column = container?.querySelector<HTMLElement>('[data-trace="true"]');
+    if (container && column) container.scrollLeft = traceStep?.index === 0 ? 0 : Math.max(0, column.offsetLeft - container.clientWidth / 2);
+  }, [traceStep]);
   const qubits = Array.from({ length: request.numQubits }, (_, index) => index);
 
   return (
@@ -32,14 +39,14 @@ export default function CircuitCanvas({
       </header>
 
       <p id={instructionsId} className="circuit-instructions">
-        {selectedId ? 'Edit the selected gate below, or choose a palette tool to place gates.'
+        {traceStep ? `Trace step ${traceStep.index} · ${traceStep.gate ? `after ${traceStep.gate.type.toUpperCase()}` : 'initial all-zero state, before any gate'}. Click a gate to edit the circuit.` : selectedId ? 'Edit the selected gate below, or choose a palette tool to place gates.'
           : tool === 'cx' ? 'Choose the control wire, then a different target at the same step.'
           : 'Click a + cell to place a gate. Click an existing gate to edit it.'}
       </p>
 
       <div className="circuit-mode" data-editing={Boolean(selectedId)}>
-        <span className="circuit-tool-badge">{selectedId ? 'EDIT' : tool.toUpperCase()}</span>
-        <span>{selectedId ? 'Gate selected' : pendingCX ? 'Choose a CX target' : `${tool.toUpperCase()} placement tool`}</span>
+        <span className="circuit-tool-badge">{traceStep ? 'TRACE' : selectedId ? 'EDIT' : tool.toUpperCase()}</span>
+        <span>{traceStep ? `Step ${traceStep.index} · before measurement` : selectedId ? 'Gate selected' : pendingCX ? 'Choose a CX target' : `${tool.toUpperCase()} placement tool`}</span>
         {selectedId && <button onClick={onDeselect}>Deselect</button>}
         <span className="circuit-direction">Execution left to right <span aria-hidden="true">→</span></span>
       </div>
@@ -56,6 +63,7 @@ export default function CircuitCanvas({
 
       <div
         className="circuit-scroll"
+        ref={scroll}
         role="region"
         aria-label="Circuit grid, execution left to right"
         aria-describedby={instructionsId}
@@ -68,8 +76,8 @@ export default function CircuitCanvas({
         }}
       >
         <div className="circuit-grid" data-empty={request.gates.length === 0}>
-          <div className="circuit-wire-labels">
-            <div className="circuit-step-label">Step</div>
+          <div className="circuit-wire-labels" data-trace={traceStep?.index === 0}>
+            <div className="circuit-step-label">{traceStep?.index === 0 ? 'Initial · 0' : 'Step'}</div>
             {qubits.map((qubit) => (
               <div key={qubit} className="circuit-wire-label">
                 <span>q{qubit}</span><span className="circuit-initial-state">|0⟩</span>
@@ -86,6 +94,8 @@ export default function CircuitCanvas({
                 className="circuit-column"
                 data-selected={selected}
                 data-pending={pendingColumn}
+                data-trace={gate !== undefined && gate.id === traceStep?.gate?.id}
+                data-gate-id={gate?.id}
               >
                 <div className="circuit-step-label">
                   {index + 1}

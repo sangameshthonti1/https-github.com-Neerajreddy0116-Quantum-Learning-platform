@@ -135,6 +135,59 @@ H and click q0 at step 1; select CX and click q0 then q1 at step 2; Run. Expect
 approximately 50% ideal probability on `00` and `11`, zero on `01` and `10`.
 Sampled counts fluctuate and sum to the selected shot count.
 
+## State Explorer
+
+Build a circuit normally and choose **Explore steps**, or open the **State
+Explorer** workspace mode and choose **Trace circuit**. The app sends the exact
+canonical request to `POST /api/simulate/trace`. No frontend quantum simulator,
+mock results, or AI explanation service is involved.
+
+- Step **0** is the initial all-zero state. Each later step corresponds to the
+  gate with that position and ID in the request snapshot. Choose a timeline
+  marker, Previous/Next, or use the native range slider (arrow keys, Home/End).
+- A blue underline highlights the corresponding circuit column; step 0 marks
+  the initial wire labels. This is separate from selecting a gate for editing.
+  Click a gate or choose **Circuit editor** to return to normal editing.
+- **Step probabilities** and **Step statevector** use the same presentation
+  components as final results. The gate explanation combines fixed operation
+  descriptions with actual probability changes between adjacent snapshots.
+- The **Bloch sphere** displays one reduced qubit at a time. Select q0/q1/q2,
+  then use **Rotate view** to change camera azimuth and elevation. The sphere
+  uses a lightweight SVG orthographic projection with no new dependency.
+  Rotation changes the view only; there is no animation or automatic playback.
+- Coordinates and vector length come directly from the backend Bloch vector.
+  Purity is `Tr(ρ²)`, computed from its returned reduced density matrix. Vectors
+  are never normalized onto the sphere: Bell's reduced qubits remain at the
+  center, with purity approximately 0.5. The full joint state stays pure.
+- On mobile, switch **Joint state / Qubit sphere** to keep the workspace compact;
+  both views retain the same selected timeline step. Rotation and timeline
+  controls work with keyboard, clicks, and taps, including reduced-motion mode.
+- **View final simulation results** returns to the existing probabilities,
+  sampled counts, statevector, and execution metadata. Tracing neither clears
+  nor replaces the final simulation result. Intermediate states are explicitly
+  labeled as ideal, before measurement, with no sampled counts.
+
+Each trace retains its own canonical request snapshot. Applied gate, order,
+qubit, shot, template, and reset changes mark it stale; its intermediate data
+and highlight are hidden. Undoing to the same completed request restores it.
+Edits during an in-flight trace abort that request; controller identity checks
+prevent late responses or errors from overwriting a newer trace. An interrupted
+trace requires a new request even if an edit is immediately undone. Unapplied
+gate-form drafts do not change canonical state. Unapplied shots and pending CX
+placement disable trace actions until resolved.
+
+HTTP validation, timeout, malformed-response, engine, and network errors offer
+retry and never substitute fabricated states. A trace failure clears its trace
+data but does not discard a separately obtained final simulation result.
+**Trace Details** preserves the request and original HTTP response text,
+including raw numerical precision and signed zero. Display-only tolerance is
+`1e-10`. Basis order is `q[n-1]...q[0]`; q0 is the rightmost bit. Global phase is
+retained, and amplitude signs alone are not interpreted as a probability change.
+
+For a visual Bell walkthrough, place H on q0 and CX q0→q1, then Explore steps:
+initial `00: 100%`; after H, `00/01: 50%` each; after CX, `00/11: 50%` each.
+At the final step both reduced Bloch vectors are approximately `(0,0,0)`.
+
 ## Preserved Circuit Test page
 
 Open **http://127.0.0.1:5173/circuit-test** for the original integration page.
@@ -216,6 +269,12 @@ responsive panel navigation, contextual deletion/editing at 320px, Escape and
 Done deselection, native H/X/Z/CX palette dragging, occupied-cell drop rejection,
 and real backend outages.
 
+The State Explorer browser suite verifies empty, H→H, and visually constructed
+Bell traces; all navigation controls and gate highlights; reduced Bloch vectors
+and rotation; retained final results; stale snapshots; delayed real-response
+races; invalid response rejection; three-qubit mobile navigation under reduced
+motion; real FastAPI validation errors; and a real test-owned backend outage.
+
 The original Circuit Test suite still verifies:
 
 1. All five templates execute against actual Aer and render the response. Bell
@@ -258,6 +317,11 @@ frontend/
 │   │   ├── GateInspector.tsx # Contextual editing, ordering, deletion and Done
 │   │   ├── CircuitCanvas.tsx # Wire grid, ordered gates and CX connectors
 │   │   ├── ResultsPanel.tsx # Real results, stale/error states and Details
+│   │   ├── StateExplorer.tsx # Trace timeline, operation explanations, joint state
+│   │   ├── BlochSphere.tsx  # Rotatable reduced-state sphere and textual values
+│   │   ├── QuantumStateViews.tsx # Shared probability and amplitude presentation
+│   │   ├── useStateTrace.ts # Trace snapshots, cancellation and stale state
+│   │   ├── explorer.css    # Focused explorer mode and responsive views
 │   │   └── lab.css         # Scoped responsive scientific workspace styles
 │   ├── styles.css           # Preserved integration page styles
 │   └── main.tsx             # React entry point
