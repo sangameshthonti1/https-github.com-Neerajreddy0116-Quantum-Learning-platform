@@ -50,7 +50,8 @@ async function noOverflow(page: Page) { expect(await page.evaluate(() => documen
 test('catalog, navigation, direct routes, and unavailable algorithms', async ({ page }) => {
   await page.goto('/algorithms');
   await expect(page.getByRole('article')).toHaveCount(4);
-  await expect(page.getByText('Available', { exact: true })).toHaveCount(4);
+  await expect(page.getByText('Available', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('Experimental', { exact: true })).toHaveCount(2);
   await expect(page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Algorithms', exact: true })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('link', { name: 'Explore Deutsch–Jozsa', exact: true }).click();
   await expect(page).toHaveURL('/algorithms/deutsch-jozsa');
@@ -316,4 +317,25 @@ test('actual backend outage removes execution results and catalog retry recovers
   } finally { await startBackend(); }
   await button(page, 'Retry loading algorithms').click(); await expect(page.getByRole('article')).toHaveCount(4);
   await page.getByRole('link', { name: 'Explore Grover’s search', exact: true }).click(); await run(page);
+});
+
+
+test('Deutsch–Jozsa guided playback uses the real trace with controls, narration, and qubit states', async ({ page }) => {
+  await page.goto('/algorithms/deutsch-jozsa');
+  await page.getByLabel('Oracle rule', { exact: true }).selectOption('xor');
+  const result = await run(page);
+  await expect(page.getByRole('region', { name: 'Circuit playback', exact: true })).toBeVisible();
+  await expect(page.getByTestId('playback-qubit-0')).toContainText('input');
+  await expect(page.getByTestId('playback-qubit-2')).toContainText('helper');
+  await expect(page.getByText('Now measure the input register.', { exact: false })).toBeVisible();
+  await button(page, 'Inspect Prepare the helper').click();
+  await expect(page.getByLabel('Trace step', { exact: true })).toHaveValue('1');
+  await page.getByLabel('Playback speed', { exact: true }).selectOption('2');
+  await button(page, 'Play circuit playback').click();
+  await expect(button(page, 'Pause circuit playback')).toBeVisible();
+  await expect.poll(async () => Number(await page.getByLabel('Trace step', { exact: true }).inputValue())).toBeGreaterThan(1);
+  await button(page, 'Pause circuit playback').click();
+  await expect(page.getByTestId('playback-explanation')).toContainText(/Hadamard|oracle|Controlled-X/);
+  await button(page, 'Next gate →').click();
+  expect(Number(await page.getByLabel('Trace step', { exact: true }).inputValue())).toBeLessThanOrEqual(result.trace.steps.length - 1);
 });

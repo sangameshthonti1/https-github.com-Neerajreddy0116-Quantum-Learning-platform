@@ -146,3 +146,10 @@
   .challenge-lab .challenge-target { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .challenge-card, .challenge-feedback { animation: none; transition: none; } .challenge-card:hover { transform: none; } }
+
+
+/* Keep the verified handoff and feedback readable during the demo. */
+.challenge-lab .challenge-brief-copy > p { font-size: 14px; }
+.challenge-submit-row h2 { font-size: 18px; }
+.challenge-submit-row p, .challenge-feedback > p { font-size: 13px; }
+.challenge-feedback-actions a { min-height: 40px; display: inline-flex; align-items: center; font-weight: 600; }

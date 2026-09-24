@@ -80,7 +80,7 @@ export function ChallengeGrading({ challenge, request, blocked, nextChallenge, o
         {grade.probabilities && <ProbabilityBars probabilities={grade.probabilities} prefix="graded" />}
         {grade.statevector && <StatevectorTable statevector={grade.statevector} basis={Object.keys(grade.probabilities!).sort()} label="Graded snapshot amplitudes" />}</details>
       <div className="challenge-feedback-actions">{grade.inspectStep !== null && <button onClick={onInspect}>{stale ? 'Explore current circuit' : `Explore toward step ${grade.inspectStep}`}</button>}
-        {!stale && grade.valid && grade.targetAchieved && <>{nextChallenge && <Link href={`/challenges/${nextChallenge.id}`}>Next: {nextChallenge.title} →</Link>}<Link href="/challenges">Back to challenges</Link></>}</div>
+        {!stale && grade.valid && grade.targetAchieved && <>{nextChallenge && <Link href={`/challenges/${nextChallenge.id}`}>Next: {nextChallenge.title} →</Link>}<Link href="/progress">View progress update →</Link><Link href="/challenges">Back to challenges</Link></>}</div>
     </div>}
   </section>;
 }

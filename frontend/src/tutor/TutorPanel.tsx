@@ -10,6 +10,11 @@ const lessonQuestions = {
   phase: ['How can two states have the same probabilities?', 'What is the difference between relative and global phase?', 'Why does H → Z → H give one?'],
   entanglement: ["Why are the Bell state's Bloch vectors at the center?", 'What does |01⟩ mean?', 'How can I build a Bell state from an empty circuit?'],
 };
+const genericQuestions = [
+  'Explain a core quantum computing idea in beginner-friendly words.',
+  'What should I learn or try next?',
+  'How do quantum circuits help us understand algorithms?',
+];
 const number = (n: number) => (Math.abs(n) < 1e-10 ? 0 : n).toFixed(3).replace(/\.?0+$/, '') || '0';
 
 function Facts({ facts }: { facts: CircuitFacts }) {
@@ -86,7 +91,7 @@ export default function TutorPanel({ context, open, onClose }: { context: TutorC
   }
   const questions = context.circuit
     ? [context.circuit.gates.length ? 'What is wrong with my circuit?' : 'How can I build a Bell state from an empty circuit?', 'Explain the gates and what changes at this step.', ...(context.lessonId ? lessonQuestions[context.lessonId].slice(0, 1) : ['Why does H give 50% and 50%?'])]
-    : lessonQuestions[context.lessonId ?? 'measurement'];
+    : context.lessonId ? lessonQuestions[context.lessonId] : genericQuestions;
 
   return <dialog className="tutor-panel" ref={dialog} aria-labelledby="tutor-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onKeyDown={(event) => {
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); }
@@ -126,7 +131,7 @@ export default function TutorPanel({ context, open, onClose }: { context: TutorC
         </div>}
       </article>)}</div>
       {loading && <div className="tutor-loading" role="status"><span aria-hidden="true" />Checking context and preparing an explanation…</div>}
-      {error && <div className="tutor-error" role="alert"><strong>We couldn’t get an AI answer</strong><p>{error}</p></div>}
+      {error && <div className="tutor-error" role="alert"><strong>We couldn’t get an AI answer</strong><p>{error}</p>{/not configured/i.test(error) && <p>No answer was fabricated. An administrator must enable the AI provider for this server.</p>}</div>}
       {notice && <p className="tutor-small" role="status">{notice}</p>}
       {!loading && retry && retry.key === context.key && <button className="q-button q-button-secondary" onClick={() => void send(retry.request, retry.id, retry.key)}>Retry question</button>}
     </div>

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:full": "node scripts/dev-full.mjs",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test",

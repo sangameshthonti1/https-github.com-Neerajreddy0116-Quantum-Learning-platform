@@ -4,6 +4,7 @@ import StateExplorer from '../lab/StateExplorer';
 import BlochSphere from '../lab/BlochSphere';
 import { ProbabilityBars } from '../lab/QuantumStateViews';
 import type { AlgorithmRun } from './types';
+import AlgorithmPlayback from './AlgorithmPlayback';
 
 export function percent(p: number) {
   const display = Math.abs(p) < 1e-10 ? 0 : Math.abs(1 - p) < 1e-10 ? 1 : p;
@@ -41,7 +42,8 @@ export default function AlgorithmResults({ result }: { result: AlgorithmRun }) {
         <p>{m.iterations.length < 3 ? 'Try 2 or 4 iterations to compare amplification and over-rotation in a single run.' : 'The probability can fall after a successful iteration. More iterations do not always help.'}</p></>
         : <><h3>Read the right register</h3><div className="algorithm-register-key"><span>q{d.ancillaQubit}<small>helper · exclude</small></span><span>{[...d.inputRegister].reverse().map(q => `q${q}`).join(' ')}<small>inputs · classify</small></span></div><p>The full state is ordered <code>q[n-1]...q[0]</code>, with q0 on the right. Here n is the total qubit count. The helper is the leftmost bit.</p><p>For example, a full outcome <code>{'1' + '0'.repeat(d.inputRegister.length)}</code> still has an all-zero input. The leading 1 belongs to the helper and does not mean “balanced.”</p><p>One oracle query per quantum run versus up to {m.classicalWorstCaseQueries} classical queries for certainty. The shot count repeats the complete experiment; it is not one query shared by all shots.</p></>}</div>
     </div>
-    <div className="algorithm-state-heading"><h3>Follow the state through the circuit</h3><p>Choose a stage boundary, then use the timeline for individual gates. “Statevector” shows amplitudes, including signs that a probability chart cannot show.</p></div>
+    <AlgorithmPlayback definition={d} steps={result.trace.steps} index={index} setIndex={setIndex} />
+    <div className="algorithm-state-heading"><h3>Inspect the mathematical state</h3><p>The playback and this detailed explorer share the same verified API trace. Choose a stage boundary or timeline step; “Statevector” shows amplitudes, including signs that a probability chart cannot show.</p></div>
     <div className="algorithm-stage-buttons" role="group" aria-label="Inspect algorithm stages"><button aria-pressed={index === 0} onClick={() => setIndex(0)}>Initial zeros</button>{d.stages.map(s => <button key={s.id} aria-pressed={index === s.endStep} onClick={() => setIndex(s.endStep)} aria-label={`Inspect ${s.title}`}>{s.title}<small>Step {s.endStep}</small></button>)}</div>
     <p className="algorithm-stage-explanation" role="status">{selectedStage ? `${selectedStage.title}: ${selectedStage.description}` : 'Initial state: all qubits are 0, before preparation.'}</p>
     <div className="lab algorithm-lab-embed algorithm-state-layout" data-pane={pane}>
