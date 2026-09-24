@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: quantum-learning-platform
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: QLP_AI_ENABLED
+        value: "false"
+      - key: QLP_PUBLIC_REQUESTS_PER_MINUTE
+        value: "60"
+      - key: QLP_PUBLIC_MAX_CONCURRENCY
+        value: "2"
+      - key: QLP_PUBLIC_MAX_BODY_BYTES
+        value: "262144"

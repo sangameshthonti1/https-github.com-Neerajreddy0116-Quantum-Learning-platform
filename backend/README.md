@@ -101,22 +101,22 @@ curl --fail-with-body --silent --show-error --noproxy '*' http://127.0.0.1:8000/
 Expected HTTP status: **200**, with exactly:
 
 ```json
-{"status":"ok","service":"quantum-learning-api"}
+{ "status": "ok", "service": "quantum-learning-api" }
 ```
 
-| Endpoint | Behavior |
-| --- | --- |
-| `GET /api/health` | Process liveness; no external dependencies are probed |
-| `POST /api/simulate` | Real ideal-state simulation and sampled terminal measurements |
-| `POST /api/simulate/trace` | Initial and per-gate states, probabilities, reduced density matrices and Bloch vectors |
-| `GET /api/variational` | Trusted VQE/MaxCut problems, simulator names and optimization limits |
-| `POST /api/variational/build` | Validated, bound initial circuit preview and independent exact reference |
-| `POST /api/variational/jobs/{uuid}` | Start one bounded optimization; idempotent same-ID/same-request retry |
-| `GET /api/variational/jobs/{uuid}` | Actual evaluation history, status and final result when completed |
-| `DELETE /api/variational/jobs/{uuid}` | Cancel and wait for worker cleanup; terminal jobs stay terminal |
-| `GET /` | HTTP 307 redirect to `/docs` |
-| `GET /docs` | Automatic Swagger UI |
-| `GET /openapi.json` | Generated OpenAPI schema |
+| Endpoint                              | Behavior                                                                               |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| `GET /api/health`                     | Process liveness; no external dependencies are probed                                  |
+| `POST /api/simulate`                  | Real ideal-state simulation and sampled terminal measurements                          |
+| `POST /api/simulate/trace`            | Initial and per-gate states, probabilities, reduced density matrices and Bloch vectors |
+| `GET /api/variational`                | Trusted VQE/MaxCut problems, simulator names and optimization limits                   |
+| `POST /api/variational/build`         | Validated, bound initial circuit preview and independent exact reference               |
+| `POST /api/variational/jobs/{uuid}`   | Start one bounded optimization; idempotent same-ID/same-request retry                  |
+| `GET /api/variational/jobs/{uuid}`    | Actual evaluation history, status and final result when completed                      |
+| `DELETE /api/variational/jobs/{uuid}` | Cancel and wait for worker cleanup; terminal jobs stay terminal                        |
+| `GET /`                               | Local mode redirects to `/docs`; the Docker deployment serves the frontend             |
+| `GET /docs`                           | Automatic Swagger UI                                                                   |
+| `GET /openapi.json`                   | Generated OpenAPI schema                                                               |
 
 FastAPI's default Swagger UI loads browser assets from a public CDN. The docs
 HTML and OpenAPI schema are served locally, but rendering the interactive UI
@@ -190,10 +190,15 @@ Settings are validated at application creation. OS environment variables overrid
 the backend source, not the shell working directory. Unknown dotenv keys are
 ignored, so a shared local environment file can contain other modules' settings.
 
-| Variable | Default | Format |
-| --- | --- | --- |
-| `QLP_API_TITLE` | `Quantum Learning API` | Nonempty string; OpenAPI title |
-| `QLP_CORS_ORIGINS` | `[]` | JSON array of exact HTTP(S) frontend origins |
+| Variable                         | Default                | Format                                                          |
+| -------------------------------- | ---------------------- | --------------------------------------------------------------- |
+| `QLP_API_TITLE`                  | `Quantum Learning API` | Nonempty string; OpenAPI title                                  |
+| `QLP_CORS_ORIGINS`               | `[]`                   | JSON array of exact HTTP(S) frontend origins                    |
+| `QLP_FRONTEND_DIST`              | unset                  | Absolute or working-directory-relative built frontend directory |
+| `QLP_PUBLIC_MODE`                | `false`                | Enables aggregate public API admission controls                 |
+| `QLP_PUBLIC_MAX_BODY_BYTES`      | `262144`               | 1 KiB–1 MiB public write-request body cap                       |
+| `QLP_PUBLIC_MAX_CONCURRENCY`     | `2`                    | 1–8 active public write requests per process                    |
+| `QLP_PUBLIC_REQUESTS_PER_MINUTE` | `60`                   | 1–600 admitted public write requests per process                |
 
 Example `.env` entry, only if both frontends are explicitly intended:
 
@@ -304,12 +309,19 @@ of the Lab selector. Tutor grounding stays Qiskit and its live provider remains
 disabled. Limits remain 3 qubits, 256 gates and 8192 shots. Neither engine supports
 noise, mid-circuit measurement, initial-state overrides or quantum hardware here.
 
-This is a tested foundation, not a deployed production service. Authentication,
-rate limits, persistence, external integrations, and deployment configuration
-remain out of scope. Individual requests are bounded (3 qubits, 256 gates,
-8192 shots), but there is no aggregate rate/body limit or job queue. Keep the
-server bound to loopback; this unauthenticated milestone is not public-facing. Keep this work local until the hackathon starts; do not
-commit, push, or deploy it as part of this setup task.
+The default development server remains local and does not enable public-mode
+admission controls. Individual requests are bounded to 3 qubits, 256 gates, and
+8192 shots. The repository's Docker deployment sets `QLP_PUBLIC_MODE=true`, serves
+the built frontend from the same FastAPI origin, caps public request bodies,
+limits aggregate write requests, and rejects excess concurrent compute instead
+of queueing it. Variational work retains its existing single-process slot.
+
+This is still an unauthenticated educational demo rather than an account service:
+there is no durable learner storage, distributed rate limiter, or multi-instance
+job queue. Use one ASGI worker, keep AI disabled unless its privacy and billing
+requirements are accepted, and use a managed edge/platform for network-level
+abuse protection.
+
 ## AI Tutor v1
 
 The optional `POST /api/ai/tutor` integration uses the official OpenAI Responses

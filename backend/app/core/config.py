@@ -18,6 +18,11 @@ class Settings(BaseSettings):
 
     api_title: str = Field(default="Quantum Learning API", min_length=1)
     cors_origins: list[str] = Field(default_factory=list)
+    frontend_dist: Path | None = None
+    public_mode: bool = False
+    public_max_body_bytes: int = Field(default=256 * 1024, ge=1024, le=1024 * 1024)
+    public_max_concurrency: int = Field(default=2, ge=1, le=8)
+    public_requests_per_minute: int = Field(default=60, ge=1, le=600)
 
     @field_validator("cors_origins")
     @classmethod
