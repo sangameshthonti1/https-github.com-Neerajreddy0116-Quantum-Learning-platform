@@ -26,3 +26,4 @@ dist/
 # Local runtime output and macOS metadata
 *.log
 .DS_Store
+.vercel/
