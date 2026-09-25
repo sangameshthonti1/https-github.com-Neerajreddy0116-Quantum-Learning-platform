@@ -37,3 +37,29 @@ and the ₹9/₹0 billing demonstration are browser-local, not user accounts or 
 payments. If AI is enabled later, add `OPENAI_API_KEY`, `QLP_AI_MODEL`, and
 `QLP_AI_ENABLED=true` only as secret server environment variables; provider usage
 may cost money and sends submitted Tutor context to that provider.
+
+## Keep the frontend on Vercel and proxy its API
+
+The Vercel configuration is in `vercel.mjs`. It forwards `/api/:path*`
+to the public FastAPI origin and keeps all other page routes on the frontend.
+
+1. Once Render workspace billing verification succeeds, create the Blueprint
+   from `render.yaml`. This uses the existing production `Dockerfile` and
+   checks `/api/health`.
+2. Wait for `https://YOUR-SERVICE.onrender.com/api/health` to return
+   `{"status":"ok", ...}`. Run
+   `node scripts/verify-public.mjs https://YOUR-SERVICE.onrender.com`
+   to check the backend before changing Vercel.
+3. In the Vercel project for `quantai-rho.vercel.app`, set the **Production**
+   environment variable `QLP_BACKEND_ORIGIN` to
+   `https://YOUR-SERVICE.onrender.com` (no `/api` path). Set it for Preview
+   too if preview deployments should work. The config rejects missing,
+   non-HTTPS, and path-bearing origins.
+4. Merge this configuration only after the healthy backend and environment
+   variable exist, then redeploy the Vercel project. Run
+   `node scripts/verify-public.mjs https://quantai-rho.vercel.app`.
+   Its page checks validate the SPA entry points; open the three pages in a
+   browser to check their interactive behavior as well.
+
+A healthy backend is required before deploying this Vercel configuration.
+No Render URL can be supplied until Render has actually created the service.
